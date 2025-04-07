@@ -1,7 +1,17 @@
-// components/FloorPlan.tsx
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useMemo } from 'react';
 import { Device, DeviceType, Room } from '@/types';
 import DeviceComponent from './DeviceComponent';
+import { calculateDistance } from '@/lib/floorplan-utils';
+
+interface Wall {
+  id: string;
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+  roomId: string;
+  color?: string;
+}
 
 interface FloorPlanProps {
   rooms: Room[];
@@ -24,6 +34,80 @@ const FloorPlan: React.FC<FloorPlanProps> = ({
 }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const [dragging, setDragging] = useState(false);
+
+  const walls = useMemo<Wall[]>(() => {
+    const generatedWalls: Wall[] = [];
+    
+    rooms.forEach(room => {
+      const topWall = {
+        id: `${room.id}-top`,
+        x1: room.x,
+        y1: room.y,
+        x2: room.x + room.width,
+        y2: room.y,
+        roomId: room.id,
+        color: room.color
+      };
+      
+      const rightWall = {
+        id: `${room.id}-right`,
+        x1: room.x + room.width,
+        y1: room.y,
+        x2: room.x + room.width,
+        y2: room.y + room.height,
+        roomId: room.id,
+        color: room.color
+      };
+      
+      const bottomWall = {
+        id: `${room.id}-bottom`,
+        x1: room.x,
+        y1: room.y + room.height,
+        x2: room.x + room.width,
+        y2: room.y + room.height,
+        roomId: room.id,
+        color: room.color
+      };
+      
+      const leftWall = {
+        id: `${room.id}-left`,
+        x1: room.x,
+        y1: room.y,
+        x2: room.x,
+        y2: room.y + room.height,
+        roomId: room.id,
+        color: room.color
+      };
+      
+      generatedWalls.push(topWall, rightWall, bottomWall, leftWall);
+    });
+    
+    const uniqueWalls: Wall[] = [];
+    generatedWalls.forEach(wall => {
+      const isDuplicate = uniqueWalls.some(existingWall => 
+        (Math.abs(existingWall.x1 - wall.x1) < 1 && Math.abs(existingWall.y1 - wall.y1) < 1 &&
+         Math.abs(existingWall.x2 - wall.x2) < 1 && Math.abs(existingWall.y2 - wall.y2) < 1) ||
+        (Math.abs(existingWall.x1 - wall.x2) < 1 && Math.abs(existingWall.y1 - wall.y2) < 1 &&
+         Math.abs(existingWall.x2 - wall.x1) < 1 && Math.abs(existingWall.y2 - wall.y1) < 1)
+      );
+      
+      if (!isDuplicate) {
+        uniqueWalls.push(wall);
+      }
+    });
+    
+    return uniqueWalls;
+  }, [rooms]);
+
+  const wallLengths = useMemo(() => {
+    return walls.map(wall => {
+      const length = calculateDistance(wall.x1, wall.y1, wall.x2, wall.y2);
+      return {
+        ...wall,
+        length: Math.round(length)
+      };
+    });
+  }, [walls]);
 
   const handleClick = (e: React.MouseEvent<SVGSVGElement>) => {
     if (selectedDeviceType && !dragging) {
@@ -72,8 +156,8 @@ const FloorPlan: React.FC<FloorPlanProps> = ({
               y={room.y}
               width={room.width}
               height={room.height}
-              fill="none"
-              stroke="#999"
+              fill={room.color ? `${room.color}20` : 'none'}
+              stroke={room.color || '#999'}
               strokeWidth="2"
               strokeDasharray="5,5"
             />
@@ -81,7 +165,7 @@ const FloorPlan: React.FC<FloorPlanProps> = ({
               x={room.x + room.width / 2}
               y={room.y + room.height / 2}
               textAnchor="middle"
-              fill="#999"
+              fill={room.color || '#999'}
               fontSize="14"
             >
               {room.name}
@@ -89,13 +173,31 @@ const FloorPlan: React.FC<FloorPlanProps> = ({
           </g>
         ))}
 
-        <rect x="0" y="60" width="918" height="890" fill="none" stroke="#000" strokeWidth="3" />
-        <line x1="0" y1="280" x2="490" y2="280" stroke="#000" strokeWidth="3" />
-        <line x1="490" y1="60" x2="490" y2="950" stroke="#000" strokeWidth="3" />
-        <line x1="0" y1="580" x2="918" y2="580" stroke="#000" strokeWidth="3" />
-        <line x1="430" y1="580" x2="430" y2="950" stroke="#000" strokeWidth="3" />
-        <line x1="0" y1="160" x2="226" y2="160" stroke="#000" strokeWidth="3" />
-        <line x1="226" y1="110" x2="226" y2="280" stroke="#000" strokeWidth="3" />
+        {wallLengths.map((wall) => (
+          <g key={wall.id}>
+            <line 
+              x1={wall.x1} 
+              y1={wall.y1} 
+              x2={wall.x2} 
+              y2={wall.y2} 
+              stroke={wall.color || '#000'} 
+              strokeWidth="3" 
+            />
+            <text
+              x={(wall.x1 + wall.x2) / 2}
+              y={(wall.y1 + wall.y2) / 2}
+              dx={wall.y1 === wall.y2 ? 0 : -15}
+              dy={wall.x1 === wall.x2 ? 15 : 0}
+              textAnchor="middle"
+              fill={wall.color || '#333'}
+              fontSize="12"
+              fontWeight="bold"
+              className="wall-length-label"
+            >
+              {wall.length}
+            </text>
+          </g>
+        ))}
 
         {devices.map((device) => (
           <DeviceComponent
