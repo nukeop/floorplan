@@ -40,3 +40,26 @@ yarn build
 ```
 
 This will create an `out` directory with your static website files that can be deployed anywhere.
+
+## GitHub Pages Deployment
+
+This project is configured for automatic deployment to GitHub Pages. When you push changes to the main branch, GitHub Actions will automatically build and deploy your site to GitHub Pages.
+
+### Manual Deployment
+
+You can also manually trigger a deployment from the GitHub Actions tab in your repository.
+
+### Deployment URL
+
+Once deployed, your site will be available at `https://[your-github-username].github.io/floorplan/`
+
+### Local Preview of Production Build
+
+To preview the production build locally (with the GitHub Pages base path):
+
+```bash
+# Build with production settings
+NODE_ENV=production npm run build
+# Serve the output directory
+npx serve out
+```
