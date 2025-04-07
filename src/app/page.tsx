@@ -14,9 +14,9 @@ export default function SmartHomePlanner() {
     { id: 'room1', name: 'Living Room', x: 0, y: 580, width: 430, height: 370, color: '#3B82F6' }, // Blue
     { id: 'room2', name: 'Bedroom', x: 430, y: 650, width: 428, height: 300, color: '#8B5CF6' },   // Purple
     { id: 'room3', name: 'Office', x: 490, y: 60, width: 368, height: 590, color: '#10B981' },     // Green
-    { id: 'kitchen', name: 'Kitchen', x: 0, y: 280, width: 490, height: 300, color: '#F59E0B' },   // Amber
-    { id: 'bathroom', name: 'Bathroom', x: 0, y: 0, width: 226, height: 153, color: '#06B6D4' }, // Cyan
-    { id: 'hallway', name: 'Hallway', x: 226, y: 0, width: 241, height: 153, color: '#6B7280' }, // Gray
+    { id: 'kitchen', name: 'Kitchen', x: 0, y: 150, width: 480, height: 290, color: '#F59E0B' },   // Amber
+    { id: 'bathroom', name: 'Bathroom', x: 0, y: 0, width: 225, height: 150, color: '#06B6D4' }, // Cyan
+    { id: 'hallway', name: 'Hallway', x: 225, y: 0, width: 255, height: 150, color: '#6B7280' }, // Gray
   ]);
 
   const addDevice = (x: number, y: number) => {

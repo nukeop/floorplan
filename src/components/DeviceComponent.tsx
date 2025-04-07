@@ -203,7 +203,7 @@ const DeviceComponent: React.FC<DeviceComponentProps> = ({
 
   return (
     <svg
-      ref={(ref) => (svgRef.current = ref)}
+      ref={ref => { svgRef.current = ref; }}
       x={position.x}
       y={position.y}
       width="32"
