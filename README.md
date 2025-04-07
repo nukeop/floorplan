@@ -43,7 +43,7 @@ This will create an `out` directory with your static website files that can be d
 
 ## GitHub Pages Deployment
 
-This project is configured for automatic deployment to GitHub Pages. When you push changes to the main branch, GitHub Actions will automatically build and deploy your site to GitHub Pages.
+This project is configured for automatic deployment to GitHub Pages. When you push changes to the master branch, GitHub Actions will automatically build and deploy your site to GitHub Pages.
 
 ### Manual Deployment
 

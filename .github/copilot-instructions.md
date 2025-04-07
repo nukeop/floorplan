@@ -39,7 +39,10 @@ This tool bridges the gap between homeowners/clients and renovation professional
 ```
 floorplan/
 ├── .github/                # GitHub-related files and documentation
+│   ├── workflows/          # GitHub Actions workflows
+│   │   └── deploy.yml      # Automated GitHub Pages deployment workflow
 ├── public/                 # Static assets
+│   └── .nojekyll           # Prevents GitHub Pages from using Jekyll processing
 ├── src/                    # Source code
 │   ├── app/                # Next.js App Router components
 │   │   ├── layout.tsx      # Root layout component
@@ -81,6 +84,23 @@ The application is configured to generate static exports (`output: 'export'` in 
 - Makes the floorplan shareable via simple web hosting
 - Removes server dependencies for viewing
 - Allows for easy distribution to stakeholders without technical expertise
+
+### GitHub Pages Deployment
+
+The project includes automated deployment to GitHub Pages:
+
+1. **GitHub Actions Workflow**: Located in `.github/workflows/deploy.yml`, this configuration:
+   - Triggers on pushes to the master branch or manual workflow dispatch
+   - Sets up the appropriate Node.js environment
+   - Builds the project using the `npm run build` command
+   - Deploys the output to GitHub Pages
+
+2. **Configuration Customizations**:
+   - `basePath` in `next.config.js` ensures assets are properly loaded from the repository subdirectory
+   - `.nojekyll` file prevents GitHub Pages from processing the output with Jekyll
+   - `deploy` script in `package.json` combines build and `.nojekyll` file creation
+
+3. **Access URL**: The deployed site is available at `https://[username].github.io/floorplan/`
 
 ### Development Workflow
 
