@@ -153,7 +153,11 @@ const FloorPlan: React.FC<FloorPlanProps> = ({
         const transformedPoint = svgPoint.matrixTransform(
           svgRef.current?.getScreenCTM()?.inverse()
         );
-        addDevice(transformedPoint.x, transformedPoint.y);
+        
+        const snappedX = snapToGrid(transformedPoint.x);
+        const snappedY = snapToGrid(transformedPoint.y);
+        
+        addDevice(snappedX, snappedY);
       }
     }
   };
@@ -334,7 +338,7 @@ const FloorPlan: React.FC<FloorPlanProps> = ({
       <svg
         ref={svgRef}
         viewBox={viewBox}
-        className={`w-full h-full ${selectedDeviceType ? 'cursor-crosshair' : 'cursor-grab'} active:cursor-grabbing`}
+        className={`w-full h-full ${selectedDeviceType ? 'cursor-crosshair' : 'cursor-grab'} active:cursor-grabbing select-none`}
         onClick={handleClick}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
@@ -367,6 +371,7 @@ const FloorPlan: React.FC<FloorPlanProps> = ({
               fill={room.color || '#999'}
               fontSize="14"
               pointerEvents="none"
+              className='select-none'
             >
               {room.name}
             </text>
@@ -400,7 +405,8 @@ const FloorPlan: React.FC<FloorPlanProps> = ({
               fill={wall.color || '#333'}
               fontSize="12"
               fontWeight="bold"
-              className="wall-length-label"
+              className="select-none"
+              pointerEvents="none"
             >
               {wall.length}
             </text>

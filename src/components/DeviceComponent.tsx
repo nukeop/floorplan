@@ -18,8 +18,19 @@ const DeviceComponent: React.FC<DeviceComponentProps> = ({
 }) => {
   const [dragging, setDragging] = useState(false);
   const [position, setPosition] = useState({ x: device.x, y: device.y });
+  
   const svgRef = useRef<SVGSVGElement | null>(null);
+  const positionRef = useRef({ x: device.x, y: device.y });
   const startPosRef = useRef({ x: 0, y: 0 });
+  const initialDevicePosRef = useRef({ x: 0, y: 0 });
+  
+  const ctmInverseRef = useRef<DOMMatrix | null>(null);
+  
+  const gridSize = 10;
+  
+  const snapToGrid = (value: number): number => {
+    return Math.round(value / gridSize) * gridSize;
+  };
 
   const getMountPositionColor = () => {
     switch (device.position) {
@@ -40,31 +51,51 @@ const DeviceComponent: React.FC<DeviceComponentProps> = ({
     e.stopPropagation();
     onClick(e);
     onDragStart(e);
-    setDragging(true);
+    
     startPosRef.current = {
       x: e.clientX,
       y: e.clientY,
     };
+    initialDevicePosRef.current = {
+      x: device.x,
+      y: device.y
+    };
+    
+    if (svgRef.current) {
+      const screenCTM = svgRef.current.getScreenCTM();
+      if (screenCTM) {
+        ctmInverseRef.current = screenCTM.inverse();
+      }
+    }
+    
+    setDragging(true);
   };
 
   const handleMouseMove = (e: MouseEvent) => {
-    if (!dragging) return;
-
-    const dx = e.clientX - startPosRef.current.x;
-    const dy = e.clientY - startPosRef.current.y;
-
-    if (svgRef.current) {
-      const svgPoint = svgRef.current.createSVGPoint();
-      svgPoint.x = device.x + dx;
-      svgPoint.y = device.y + dy;
+    if (!dragging || !ctmInverseRef.current) return;
+    
+    const svgPoint = svgRef.current?.createSVGPoint();
+    const startSvgPoint = svgRef.current?.createSVGPoint();
+    
+    if (svgPoint && startSvgPoint) {
+      svgPoint.x = e.clientX;
+      svgPoint.y = e.clientY;
+      startSvgPoint.x = startPosRef.current.x;
+      startSvgPoint.y = startPosRef.current.y;
       
-      const transformedPoint = svgPoint.matrixTransform(
-        svgRef.current.getScreenCTM()?.inverse()
-      );
+      const transformedPoint = svgPoint.matrixTransform(ctmInverseRef.current);
+      const transformedStartPoint = startSvgPoint.matrixTransform(ctmInverseRef.current);
       
-      setPosition({
-        x: transformedPoint.x,
-        y: transformedPoint.y,
+      const dx = transformedPoint.x - transformedStartPoint.x;
+      const dy = transformedPoint.y - transformedStartPoint.y;
+      
+      const newX = snapToGrid(initialDevicePosRef.current.x + dx);
+      const newY = snapToGrid(initialDevicePosRef.current.y + dy);
+
+      positionRef.current = { x: newX, y: newY };
+      
+      requestAnimationFrame(() => {
+        setPosition(positionRef.current);
       });
     }
   };
@@ -72,7 +103,8 @@ const DeviceComponent: React.FC<DeviceComponentProps> = ({
   const handleMouseUp = () => {
     if (dragging) {
       setDragging(false);
-      onDragEnd(device.id, position.x, position.y);
+      onDragEnd(device.id, positionRef.current.x, positionRef.current.y);
+      ctmInverseRef.current = null;
     }
   };
 
@@ -92,11 +124,15 @@ const DeviceComponent: React.FC<DeviceComponentProps> = ({
   }, [dragging]);
 
   useEffect(() => {
-    setPosition({ x: device.x, y: device.y });
-  }, [device.x, device.y]);
+    if (!dragging) {
+      const snappedX = snapToGrid(device.x);
+      const snappedY = snapToGrid(device.y);
+      setPosition({ x: snappedX, y: snappedY });
+      positionRef.current = { x: snappedX, y: snappedY };
+    }
+  }, [device.x, device.y, dragging]);
 
   const renderDeviceIcon = () => {
-    const positionColor = getMountPositionColor();
     const strokeColor = selected ? "#2196f3" : "#000";
     const strokeWidth = selected ? 2 : 1;
     
@@ -209,7 +245,11 @@ const DeviceComponent: React.FC<DeviceComponentProps> = ({
       width="32"
       height="32"
       viewBox="-16 -16 32 32"
-      className={`cursor-pointer ${dragging ? 'opacity-80' : ''}`}
+      style={{ 
+        cursor: dragging ? 'grabbing' : 'pointer',
+        opacity: dragging ? 0.8 : 1,
+        willChange: dragging ? 'transform' : 'auto' // Rendering optimization
+      }}
       onMouseDown={handleMouseDown}
     >
       {renderMountPositionIndicator()}
