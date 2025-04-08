@@ -18,9 +18,11 @@ interface FloorPlanProps {
   devices: Device[];
   selectedDeviceType: DeviceType | null;
   selectedDevice: Device | null;
+  selectedRoom: Room | null;
   addDevice: (x: number, y: number) => void;
   updateDevicePosition: (id: string, x: number, y: number) => void;
   selectDevice: (device: Device | null) => void;
+  selectRoom: (room: Room | null) => void;
 }
 
 const FloorPlan: React.FC<FloorPlanProps> = ({
@@ -28,9 +30,11 @@ const FloorPlan: React.FC<FloorPlanProps> = ({
   devices,
   selectedDeviceType,
   selectedDevice,
+  selectedRoom,
   addDevice,
   updateDevicePosition,
   selectDevice,
+  selectRoom,
 }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const [dragging, setDragging] = useState(false);
@@ -110,6 +114,12 @@ const FloorPlan: React.FC<FloorPlanProps> = ({
   }, [walls]);
 
   const handleClick = (e: React.MouseEvent<SVGSVGElement>) => {
+    if (e.target === svgRef.current) {
+      selectDevice(null);
+      selectRoom(null);
+      return;
+    }
+
     if (selectedDeviceType && !dragging) {
       const svgPoint = svgRef.current?.createSVGPoint();
       if (svgPoint) {
@@ -123,8 +133,15 @@ const FloorPlan: React.FC<FloorPlanProps> = ({
     }
   };
 
+  const handleRoomClick = (e: React.MouseEvent, room: Room) => {
+    e.stopPropagation();
+    selectDevice(null);
+    selectRoom(room);
+  };
+
   const handleDeviceClick = (e: React.MouseEvent, device: Device) => {
     e.stopPropagation();
+    selectRoom(null);
     selectDevice(device);
   };
 
@@ -158,8 +175,10 @@ const FloorPlan: React.FC<FloorPlanProps> = ({
               height={room.height}
               fill={room.color ? `${room.color}20` : 'none'}
               stroke={room.color || '#999'}
-              strokeWidth="2"
-              strokeDasharray="5,5"
+              strokeWidth={selectedRoom?.id === room.id ? "4" : "2"}
+              strokeDasharray={selectedRoom?.id === room.id ? "" : "5,5"}
+              className="cursor-pointer"
+              onClick={(e) => handleRoomClick(e, room)}
             />
             <text
               x={room.x + room.width / 2}
@@ -167,6 +186,7 @@ const FloorPlan: React.FC<FloorPlanProps> = ({
               textAnchor="middle"
               fill={room.color || '#999'}
               fontSize="14"
+              pointerEvents="none"
             >
               {room.name}
             </text>

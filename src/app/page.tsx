@@ -10,6 +10,7 @@ export default function SmartHomePlanner() {
   const [selectedDeviceType, setSelectedDeviceType] = useState<DeviceType | null>(null);
   const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
   const [selectedMountPosition, setSelectedMountPosition] = useState<MountPosition>(MountPosition.WALL_MEDIUM);
+  const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
   const [rooms, setRooms] = useState<Room[]>([
     { id: 'room1', name: 'Living Room', x: 0, y: 580, width: 430, height: 370, color: '#3B82F6' }, // Blue
     { id: 'room2', name: 'Bedroom', x: 430, y: 650, width: 428, height: 300, color: '#8B5CF6' },   // Purple
@@ -105,17 +106,49 @@ export default function SmartHomePlanner() {
     }
   };
 
+  const addRoom = (name: string, color: string) => {
+    const newRoom: Room = {
+      id: `room-${Date.now()}`,
+      name,
+      x: 50,
+      y: 50,
+      width: 200,
+      height: 150,
+      color,
+    };
+    
+    setRooms([...rooms, newRoom]);
+    setSelectedRoom(newRoom);
+  };
+
+  const updateRoom = (id: string, updates: Partial<Room>) => {
+    setRooms(
+      rooms.map(room => room.id === id ? { ...room, ...updates } : room)
+    );
+  };
+
+  const deleteRoom = (id: string) => {
+    setRooms(rooms.filter(room => room.id !== id));
+    if (selectedRoom?.id === id) {
+      setSelectedRoom(null);
+    }
+  };
+
   // Effect to handle saving configuration to local storage
   useEffect(() => {
-    // Save configuration to localStorage when it changes
     if (devices.length > 0) {
       localStorage.setItem('smart-home-devices', JSON.stringify(devices));
     }
   }, [devices]);
 
+  useEffect(() => {
+    if (rooms.length > 0) {
+      localStorage.setItem('smart-home-rooms', JSON.stringify(rooms));
+    }
+  }, [rooms]);
+
   // Effect to load saved configuration
   useEffect(() => {
-    // Load saved configuration on startup
     const savedDevices = localStorage.getItem('smart-home-devices');
     if (savedDevices) {
       try {
@@ -126,10 +159,21 @@ export default function SmartHomePlanner() {
     }
   }, []);
 
+  useEffect(() => {
+    const savedRooms = localStorage.getItem('smart-home-rooms');
+    if (savedRooms) {
+      try {
+        setRooms(JSON.parse(savedRooms));
+      } catch (error) {
+        console.error('Error loading saved rooms:', error);
+      }
+    }
+  }, []);
+
   return (
     <div className="flex flex-col h-screen">
       <header className="bg-slate-800 text-white p-4 text-center">
-        <h1 className="text-2xl font-bold"> Planner</h1>
+        <h1 className="text-2xl font-bold">Smart Home Planner</h1>
       </header>
       
       <div className="flex flex-1 overflow-hidden">
@@ -144,6 +188,12 @@ export default function SmartHomePlanner() {
           updateDevicePosition={updateDeviceMountPosition}
           exportConfiguration={exportConfiguration}
           importConfiguration={importConfiguration}
+          rooms={rooms}
+          selectedRoom={selectedRoom}
+          selectRoom={setSelectedRoom}
+          addRoom={addRoom}
+          updateRoom={updateRoom}
+          deleteRoom={deleteRoom}
         />
         
         <FloorPlan 
@@ -154,6 +204,8 @@ export default function SmartHomePlanner() {
           updateDevicePosition={updateDevicePosition}
           selectDevice={setSelectedDevice}
           selectedDevice={selectedDevice}
+          selectedRoom={selectedRoom}
+          selectRoom={setSelectedRoom}
         />
       </div>
     </div>

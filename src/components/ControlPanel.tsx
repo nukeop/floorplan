@@ -1,5 +1,6 @@
 import React from 'react';
-import { DeviceType, Device, MountPosition } from '@/types';
+import { DeviceType, Device, MountPosition, Room } from '@/types';
+import RoomPanel from './RoomPanel';
 
 interface ControlPanelProps {
   selectedDeviceType: DeviceType | null;
@@ -12,6 +13,12 @@ interface ControlPanelProps {
   updateDevicePosition: (id: string, position: MountPosition) => void;
   exportConfiguration: () => void;
   importConfiguration: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  rooms: Room[];
+  selectedRoom: Room | null;
+  selectRoom: (room: Room | null) => void;
+  addRoom: (name: string, color: string) => void;
+  updateRoom: (id: string, updates: Partial<Room>) => void;
+  deleteRoom: (id: string) => void;
 }
 
 const ControlPanel: React.FC<ControlPanelProps> = ({
@@ -25,6 +32,12 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   updateDevicePosition,
   exportConfiguration,
   importConfiguration,
+  rooms,
+  selectedRoom,
+  selectRoom,
+  addRoom,
+  updateRoom,
+  deleteRoom,
 }) => {
   const deviceTypes = [
     { type: DeviceType.SOCKET, label: 'Socket' },
@@ -170,6 +183,15 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
         </div>
       )}
 
+      <RoomPanel
+        rooms={rooms}
+        selectedRoom={selectedRoom}
+        selectRoom={selectRoom}
+        addRoom={addRoom}
+        updateRoom={updateRoom}
+        deleteRoom={deleteRoom}
+      />
+      
       <div className="mt-4">
         <h3 className="text-lg font-semibold mb-2">Configuration:</h3>
         <div className="flex flex-col gap-2">
