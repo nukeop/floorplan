@@ -1,6 +1,6 @@
 # Floorplan Designer for Renovations
 
-A Next.js application for creating and sharing floorplans with renovation companies, focusing on the placement of electrical sockets, switches, IoT sensors, and other elements.
+A Next.js application for creating and sharing floorplans with renovation companies, focusing on the placement of electrical elements and IoT devices such as sockets, switches, sensors, lights, and other components.
 
 ## Getting Started
 
@@ -22,12 +22,24 @@ yarn dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-## Features (Planned)
+## Current Features
 
-- Interactive floorplan designer
-- Placement of electrical sockets, switches, and IoT sensors
-- Export and share capabilities
-- Responsive design for viewing on multiple devices
+- **Interactive Floorplan Designer**: Visual representation of rooms with walls and measurements
+- **Comprehensive Device Library**: Place various electrical and IoT devices including:
+  - Standard and smart electrical sockets
+  - Standard and smart light switches
+  - Motion and temperature sensors
+  - Wall and ceiling lights
+  - Ethernet outlets, TV outlets, and thermostats
+- **Device Management**:
+  - Drag and drop placement
+  - Device rotation
+  - Multiple mounting position options (wall-low, wall-medium, wall-high, ceiling)
+  - Device selection and deletion
+- **Configuration Management**:
+  - Export configuration as JSON for backup or sharing
+  - Import configuration from JSON files
+  - Automatic saving to browser local storage
 
 ## Exporting for Sharing
 

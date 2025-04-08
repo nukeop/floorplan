@@ -39,18 +39,20 @@ This tool bridges the gap between homeowners/clients and renovation professional
 ```
 floorplan/
 ├── .github/                # GitHub-related files and documentation
-│   ├── workflows/          # GitHub Actions workflows
-│   │   └── deploy.yml      # Automated GitHub Pages deployment workflow
+│   └── copilot-instructions.md # Project overview and instructions
 ├── public/                 # Static assets
 │   └── .nojekyll           # Prevents GitHub Pages from using Jekyll processing
 ├── src/                    # Source code
 │   ├── app/                # Next.js App Router components
 │   │   ├── layout.tsx      # Root layout component
-│   │   └── page.tsx        # Home page component
+│   │   └── page.tsx        # Home page component with main application logic
 │   ├── components/         # Reusable React components
-│   │   └── FloorplanViewer.tsx  # Floorplan display component
+│   │   ├── ControlPanel.tsx  # UI for device selection and configuration
+│   │   ├── DeviceComponent.tsx # Individual device renderer
+│   │   └── FloorPlan.tsx   # Main floorplan visualization component
 │   ├── lib/                # Utility functions and business logic
 │   │   └── floorplan-utils.ts   # Floorplan-related utilities
+│   ├── types.ts            # TypeScript type definitions
 │   └── styles/             # CSS styles
 │       └── globals.css     # Global styles including Tailwind directives
 ├── .eslintrc.json         # ESLint configuration
@@ -63,19 +65,39 @@ floorplan/
 
 ### Key Components
 
-1. **FloorplanViewer**: The core component responsible for rendering and interacting with the floorplan.
+1. **FloorPlan**: The core component responsible for rendering the floorplan layout, including rooms, walls, and devices.
 
-2. **Floorplan Utilities**: Located in `src/lib/floorplan-utils.ts`, contains:
-   - Type definitions for floorplan elements
-   - Core utility functions for working with floorplan data
-   - Distance calculations and element ID generation
+2. **DeviceComponent**: Renders individual devices on the floorplan with appropriate icons and interactive behaviors.
+
+3. **ControlPanel**: Provides the user interface for selecting device types, mount positions, and managing devices.
+
+4. **Floorplan Utilities**: Located in `src/lib/floorplan-utils.ts`, contains helper functions for:
+   - Element ID generation
+   - Distance calculations between points
 
 ### Data Structures
 
-The project uses TypeScript interfaces to define the floorplan data:
+The project uses TypeScript interfaces and enums to define the floorplan data:
 
-- **FloorplanElement**: Represents individual elements on the floorplan (sockets, switches, etc.)
-- **FloorplanData**: Contains the overall floorplan information including dimensions and scale
+- **DeviceType**: Enumeration of supported devices (socket, switch, sensors, lights, etc.)
+- **MountPosition**: Enumeration of possible mounting positions (wall-low, wall-medium, wall-high, ceiling)
+- **Device**: Interface for device elements placed on the floorplan
+- **Room**: Interface for room definitions and dimensions
+
+### Features
+
+The application provides the following features:
+
+1. **Interactive Floorplan**: Visual display of rooms with drag-and-drop functionality
+2. **Device Placement**: Ability to add various electrical and IoT devices to the floorplan
+3. **Device Management**:
+   - Rotation of devices
+   - Changing mount positions
+   - Deletion of devices
+4. **Configuration Management**:
+   - Export configuration as JSON
+   - Import configuration from JSON
+   - Auto-save to browser local storage
 
 ### Export Strategy
 
@@ -90,12 +112,14 @@ The application is configured to generate static exports (`output: 'export'` in 
 The project includes automated deployment to GitHub Pages:
 
 1. **GitHub Actions Workflow**: Located in `.github/workflows/deploy.yml`, this configuration:
+
    - Triggers on pushes to the master branch or manual workflow dispatch
    - Sets up the appropriate Node.js environment
    - Builds the project using the `npm run build` command
    - Deploys the output to GitHub Pages
 
 2. **Configuration Customizations**:
+
    - `basePath` in `next.config.js` ensures assets are properly loaded from the repository subdirectory
    - `.nojekyll` file prevents GitHub Pages from processing the output with Jekyll
    - `deploy` script in `package.json` combines build and `.nojekyll` file creation
@@ -107,27 +131,6 @@ The project includes automated deployment to GitHub Pages:
 1. Use `npm run dev` for local development
 2. Use `npm run build` to generate the static export in the `out` directory
 3. The exported static site can be hosted on any static file hosting service
-
-## Future Development Areas
-
-The current implementation provides the foundational structure. Future iterations should focus on:
-
-1. Interactive element placement capabilities
-2. Saving/loading floorplan designs
-3. PDF export functionality
-4. Mobile responsiveness improvements
-5. User authentication (if multi-user support is needed)
-6. Collaborative editing features
-
-## Contribution Guidelines
-
-When contributing to this project, please:
-
-1. Follow the established code style (enforced by ESLint/Prettier)
-2. Maintain type safety with proper TypeScript usage
-3. Keep components modular and reusable
-4. Update documentation when changing core functionality
-5. Consider static export compatibility when adding features
 
 ---
 
