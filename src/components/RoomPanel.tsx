@@ -1,23 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { Room } from '@/types';
+import { useFloorplan } from '@/contexts/FloorplanContext';
 
-interface RoomPanelProps {
-  rooms: Room[];
-  selectedRoom: Room | null;
-  selectRoom: (room: Room | null) => void;
-  addRoom: (name: string, color: string) => void;
-  updateRoom: (id: string, updates: Partial<Room>) => void;
-  deleteRoom: (id: string) => void;
-}
+const RoomPanel: React.FC = () => {
+  const {
+    rooms,
+    selectedRoom,
+    selectRoom,
+    addRoom,
+    updateRoom,
+    deleteRoom,
+  } = useFloorplan();
 
-const RoomPanel: React.FC<RoomPanelProps> = ({
-  rooms,
-  selectedRoom,
-  selectRoom,
-  addRoom,
-  updateRoom,
-  deleteRoom,
-}) => {
   const [newRoomName, setNewRoomName] = useState<string>('');
   const [newRoomColor, setNewRoomColor] = useState<string>('#4B5563');
   

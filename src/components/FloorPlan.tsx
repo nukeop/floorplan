@@ -1,46 +1,36 @@
-import React, { useRef, useState, useMemo, useEffect } from 'react';
-import { Device, DeviceType, Room } from '@/types';
+import React, { useRef, useState, useEffect } from 'react';
+import { Device, Room } from '@/types';
 import DeviceComponent from './DeviceComponent';
 import RoomHandles from './RoomHandles';
-import { calculateDistance } from '@/lib/floorplan-utils';
+import { useFloorplan } from '@/contexts/FloorplanContext';
+import { useGrid } from '@/hooks/useGrid';
+import { useWalls } from '@/hooks/useWalls';
 
-interface Wall {
-  id: string;
-  x1: number;
-  y1: number;
-  x2: number;
-  y2: number;
-  roomId: string;
-  color?: string;
-}
+const FloorPlan: React.FC = () => {
+  const {
+    rooms,
+    devices,
+    selectedDeviceType,
+    selectedDevice,
+    selectedRoom,
+    addDevice,
+    updateDevicePosition,
+    selectDevice,
+    selectRoom,
+    updateRoom,
+    isLoading
+  } = useFloorplan();
 
-interface FloorPlanProps {
-  rooms: Room[];
-  devices: Device[];
-  selectedDeviceType: DeviceType | null;
-  selectedDevice: Device | null;
-  selectedRoom: Room | null;
-  addDevice: (x: number, y: number) => void;
-  updateDevicePosition: (id: string, x: number, y: number) => void;
-  selectDevice: (device: Device | null) => void;
-  selectRoom: (room: Room | null) => void;
-  updateRoom: (id: string, updates: Partial<Room>) => void;
-  isLoading?: boolean;
-}
-
-const FloorPlan: React.FC<FloorPlanProps> = ({
-  rooms,
-  devices,
-  selectedDeviceType,
-  selectedDevice,
-  selectedRoom,
-  addDevice,
-  updateDevicePosition,
-  selectDevice,
-  selectRoom,
-  updateRoom,
-  isLoading = false,
-}) => {
+  const { 
+    gridSize, 
+    margin, 
+    viewBox, 
+    snapToGrid,
+    ensurePositiveCoordinate 
+  } = useGrid();
+  
+  const wallLengths = useWalls(rooms);
+  
   const svgRef = useRef<SVGSVGElement>(null);
   const [dragging, setDragging] = useState(false);
   
@@ -58,96 +48,6 @@ const FloorPlan: React.FC<FloorPlanProps> = ({
   const [resizeStartY, setResizeStartY] = useState(0);
   const [roomStartWidth, setRoomStartWidth] = useState(0);
   const [roomStartHeight, setRoomStartHeight] = useState(0);
-  
-  // Grid and frame configuration
-  const gridSize = 10; // Grid size in SVG units
-  const margin = 50; 
-  const workingWidth = 950;
-  const workingHeight = 950;
-  const totalWidth = workingWidth + (margin * 2);
-  const totalHeight = workingHeight + (margin * 2);
-  
-  const snapToGrid = (value: number): number => {
-    return Math.round(value / gridSize) * gridSize;
-  };
-
-  const ensurePositiveCoordinate = (value: number): number => {
-    return Math.max(margin, value);
-  };
-
-  const walls = useMemo<Wall[]>(() => {
-    const generatedWalls: Wall[] = [];
-    
-    rooms.forEach(room => {
-      const topWall = {
-        id: `${room.id}-top`,
-        x1: room.x,
-        y1: room.y,
-        x2: room.x + room.width,
-        y2: room.y,
-        roomId: room.id,
-        color: room.color
-      };
-      
-      const rightWall = {
-        id: `${room.id}-right`,
-        x1: room.x + room.width,
-        y1: room.y,
-        x2: room.x + room.width,
-        y2: room.y + room.height,
-        roomId: room.id,
-        color: room.color
-      };
-      
-      const bottomWall = {
-        id: `${room.id}-bottom`,
-        x1: room.x,
-        y1: room.y + room.height,
-        x2: room.x + room.width,
-        y2: room.y + room.height,
-        roomId: room.id,
-        color: room.color
-      };
-      
-      const leftWall = {
-        id: `${room.id}-left`,
-        x1: room.x,
-        y1: room.y,
-        x2: room.x,
-        y2: room.y + room.height,
-        roomId: room.id,
-        color: room.color
-      };
-      
-      generatedWalls.push(topWall, rightWall, bottomWall, leftWall);
-    });
-    
-    const uniqueWalls: Wall[] = [];
-    generatedWalls.forEach(wall => {
-      const isDuplicate = uniqueWalls.some(existingWall => 
-        (Math.abs(existingWall.x1 - wall.x1) < 1 && Math.abs(existingWall.y1 - wall.y1) < 1 &&
-         Math.abs(existingWall.x2 - wall.x2) < 1 && Math.abs(existingWall.y2 - wall.y2) < 1) ||
-        (Math.abs(existingWall.x1 - wall.x2) < 1 && Math.abs(existingWall.y1 - wall.y2) < 1 &&
-         Math.abs(existingWall.x2 - wall.x1) < 1 && Math.abs(existingWall.y2 - wall.y1) < 1)
-      );
-      
-      if (!isDuplicate) {
-        uniqueWalls.push(wall);
-      }
-    });
-    
-    return uniqueWalls;
-  }, [rooms]);
-
-  const wallLengths = useMemo(() => {
-    return walls.map(wall => {
-      const length = calculateDistance(wall.x1, wall.y1, wall.x2, wall.y2);
-      return {
-        ...wall,
-        length: Math.round(length)
-      };
-    });
-  }, [walls]);
 
   const handleClick = (e: React.MouseEvent<SVGSVGElement>) => {
     if (e.target === svgRef.current) {
@@ -347,7 +247,6 @@ const FloorPlan: React.FC<FloorPlanProps> = ({
     };
   }, [isDraggingRoom, isResizing, selectedRoom]);
 
-  const viewBox = `0 0 ${totalWidth} ${totalHeight}`;
   const isEmpty = rooms.length === 0 && devices.length === 0;
 
   return (
@@ -378,8 +277,8 @@ const FloorPlan: React.FC<FloorPlanProps> = ({
           <rect 
             x="0" 
             y="0" 
-            width={totalWidth} 
-            height={totalHeight} 
+            width="100%" 
+            height="100%" 
             fill="#f9fafb" 
             stroke="none" 
           />
@@ -388,8 +287,8 @@ const FloorPlan: React.FC<FloorPlanProps> = ({
           <rect 
             x={margin} 
             y={margin} 
-            width={workingWidth} 
-            height={workingHeight} 
+            width={950} 
+            height={950} 
             fill="url(#grid)" 
             stroke="#2563eb" 
             strokeWidth="2"

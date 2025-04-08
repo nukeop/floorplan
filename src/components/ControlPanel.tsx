@@ -1,44 +1,22 @@
 import React from 'react';
-import { DeviceType, Device, MountPosition, Room } from '@/types';
+import { DeviceType, MountPosition } from '@/types';
 import RoomPanel from './RoomPanel';
+import { useFloorplan } from '@/contexts/FloorplanContext';
 
-interface ControlPanelProps {
-  selectedDeviceType: DeviceType | null;
-  setSelectedDeviceType: (type: DeviceType | null) => void;
-  selectedDevice: Device | null;
-  selectedMountPosition: MountPosition;
-  setSelectedMountPosition: (position: MountPosition) => void;
-  rotateDevice: (id: string) => void;
-  deleteDevice: (id: string) => void;
-  updateDevicePosition: (id: string, position: MountPosition) => void;
-  exportConfiguration: () => void;
-  importConfiguration: (event: React.ChangeEvent<HTMLInputElement>) => void;
-  rooms: Room[];
-  selectedRoom: Room | null;
-  selectRoom: (room: Room | null) => void;
-  addRoom: (name: string, color: string) => void;
-  updateRoom: (id: string, updates: Partial<Room>) => void;
-  deleteRoom: (id: string) => void;
-}
+const ControlPanel: React.FC = () => {
+  const {
+    selectedDeviceType,
+    setSelectedDeviceType,
+    selectedDevice,
+    selectedMountPosition,
+    setSelectedMountPosition,
+    rotateDevice,
+    deleteDevice,
+    updateDeviceMountPosition,
+    exportConfiguration,
+    importConfiguration,
+  } = useFloorplan();
 
-const ControlPanel: React.FC<ControlPanelProps> = ({
-  selectedDeviceType,
-  setSelectedDeviceType,
-  selectedDevice,
-  selectedMountPosition,
-  setSelectedMountPosition,
-  rotateDevice,
-  deleteDevice,
-  updateDevicePosition,
-  exportConfiguration,
-  importConfiguration,
-  rooms,
-  selectedRoom,
-  selectRoom,
-  addRoom,
-  updateRoom,
-  deleteRoom,
-}) => {
   const deviceTypes = [
     { type: DeviceType.SOCKET, label: 'Socket' },
     { type: DeviceType.SWITCH, label: 'Switch' },
@@ -60,30 +38,6 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
     { position: MountPosition.WALL_HIGH, label: 'Wall (high ~120cm)', color: 'bg-orange-500' },
     { position: MountPosition.CEILING, label: 'Ceiling', color: 'bg-purple-500' },
   ];
-
-  React.useEffect(() => {
-    if (selectedDeviceType) {
-      switch (selectedDeviceType) {
-        case DeviceType.CEILING_LIGHT:
-        case DeviceType.CEILING_SENSOR:
-          setSelectedMountPosition(MountPosition.CEILING);
-          break;
-        case DeviceType.SWITCH:
-        case DeviceType.SMART_SWITCH:
-        case DeviceType.THERMOSTAT:
-          setSelectedMountPosition(MountPosition.WALL_HIGH);
-          break;
-        case DeviceType.SOCKET:
-        case DeviceType.SMART_SOCKET:
-        case DeviceType.ETHERNET:
-        case DeviceType.TV_OUTLET:
-          setSelectedMountPosition(MountPosition.WALL_MEDIUM);
-          break;
-        default:
-          break;
-      }
-    }
-  }, [selectedDeviceType, setSelectedMountPosition]);
 
   return (
     <div className="w-80 bg-white p-4 overflow-y-auto border-r border-gray-200 shadow-md">
@@ -157,7 +111,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
                       ? 'bg-gray-100 border-gray-400' 
                       : 'bg-white hover:bg-gray-50 border-gray-200'
                   }`}
-                  onClick={() => updateDevicePosition(selectedDevice.id, pos.position)}
+                  onClick={() => updateDeviceMountPosition(selectedDevice.id, pos.position)}
                 >
                   <span className={`inline-block w-4 h-4 rounded-full mr-2 ${pos.color}`}></span>
                   {pos.label}
@@ -183,14 +137,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
         </div>
       )}
 
-      <RoomPanel
-        rooms={rooms}
-        selectedRoom={selectedRoom}
-        selectRoom={selectRoom}
-        addRoom={addRoom}
-        updateRoom={updateRoom}
-        deleteRoom={deleteRoom}
-      />
+      <RoomPanel />
       
       <div className="mt-4">
         <h3 className="text-lg font-semibold mb-2">Configuration:</h3>
