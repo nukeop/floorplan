@@ -49,7 +49,9 @@ floorplan/
 │   ├── components/         # Reusable React components
 │   │   ├── ControlPanel.tsx  # UI for device selection and configuration
 │   │   ├── DeviceComponent.tsx # Individual device renderer
-│   │   └── FloorPlan.tsx   # Main floorplan visualization component
+│   │   ├── FloorPlan.tsx   # Main floorplan visualization component
+│   │   ├── RoomHandles.tsx # Resize/drag handles for rooms
+│   │   └── RoomPanel.tsx   # UI for room management
 │   ├── lib/                # Utility functions and business logic
 │   │   └── floorplan-utils.ts   # Floorplan-related utilities
 │   ├── types.ts            # TypeScript type definitions
@@ -71,7 +73,11 @@ floorplan/
 
 3. **ControlPanel**: Provides the user interface for selecting device types, mount positions, and managing devices.
 
-4. **Floorplan Utilities**: Located in `src/lib/floorplan-utils.ts`, contains helper functions for:
+4. **RoomPanel**: Enables room management functionality, including creation, editing, and deletion of rooms.
+
+5. **RoomHandles**: Provides interactive handles for room resizing and repositioning.
+
+6. **Floorplan Utilities**: Located in `src/lib/floorplan-utils.ts`, contains helper functions for:
    - Element ID generation
    - Distance calculations between points
 
@@ -94,7 +100,13 @@ The application provides the following features:
    - Rotation of devices
    - Changing mount positions
    - Deletion of devices
-4. **Configuration Management**:
+4. **Room Management**:
+   - Create, edit, and delete rooms
+   - Drag rooms to reposition
+   - Resize rooms using interactive handles
+   - Grid snapping for precise placement
+   - Edit room properties (name, color, dimensions)
+5. **Configuration Management**:
    - Export configuration as JSON
    - Import configuration from JSON
    - Auto-save to browser local storage
