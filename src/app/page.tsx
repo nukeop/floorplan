@@ -206,6 +206,7 @@ export default function SmartHomePlanner() {
           selectedDevice={selectedDevice}
           selectedRoom={selectedRoom}
           selectRoom={setSelectedRoom}
+          updateRoom={updateRoom}
         />
       </div>
     </div>

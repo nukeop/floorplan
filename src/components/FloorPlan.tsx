@@ -1,6 +1,7 @@
-import React, { useRef, useState, useMemo } from 'react';
+import React, { useRef, useState, useMemo, useEffect } from 'react';
 import { Device, DeviceType, Room } from '@/types';
 import DeviceComponent from './DeviceComponent';
+import RoomHandles from './RoomHandles';
 import { calculateDistance } from '@/lib/floorplan-utils';
 
 interface Wall {
@@ -23,6 +24,7 @@ interface FloorPlanProps {
   updateDevicePosition: (id: string, x: number, y: number) => void;
   selectDevice: (device: Device | null) => void;
   selectRoom: (room: Room | null) => void;
+  updateRoom: (id: string, updates: Partial<Room>) => void;
 }
 
 const FloorPlan: React.FC<FloorPlanProps> = ({
@@ -35,9 +37,32 @@ const FloorPlan: React.FC<FloorPlanProps> = ({
   updateDevicePosition,
   selectDevice,
   selectRoom,
+  updateRoom,
 }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const [dragging, setDragging] = useState(false);
+  
+  // Room dragging state
+  const [isDraggingRoom, setIsDraggingRoom] = useState(false);
+  const [dragStartX, setDragStartX] = useState(0);
+  const [dragStartY, setDragStartY] = useState(0);
+  const [roomStartX, setRoomStartX] = useState(0);
+  const [roomStartY, setRoomStartY] = useState(0);
+  
+  // Room resizing state
+  const [isResizing, setIsResizing] = useState(false);
+  const [resizeDirection, setResizeDirection] = useState<string | null>(null);
+  const [resizeStartX, setResizeStartX] = useState(0);
+  const [resizeStartY, setResizeStartY] = useState(0);
+  const [roomStartWidth, setRoomStartWidth] = useState(0);
+  const [roomStartHeight, setRoomStartHeight] = useState(0);
+  
+  // Grid snapping
+  const gridSize = 10; // Grid size in SVG units
+  
+  const snapToGrid = (value: number): number => {
+    return Math.round(value / gridSize) * gridSize;
+  };
 
   const walls = useMemo<Wall[]>(() => {
     const generatedWalls: Wall[] = [];
@@ -145,6 +170,129 @@ const FloorPlan: React.FC<FloorPlanProps> = ({
     selectDevice(device);
   };
 
+  // Room dragging handlers
+  const handleRoomDragStart = (e: React.MouseEvent) => {
+    if (!selectedRoom) return;
+    
+    const svgPoint = svgRef.current?.createSVGPoint();
+    if (svgPoint) {
+      svgPoint.x = e.clientX;
+      svgPoint.y = e.clientY;
+      const transformedPoint = svgPoint.matrixTransform(
+        svgRef.current?.getScreenCTM()?.inverse()
+      );
+      
+      setDragStartX(transformedPoint.x);
+      setDragStartY(transformedPoint.y);
+      setRoomStartX(selectedRoom.x);
+      setRoomStartY(selectedRoom.y);
+      setIsDraggingRoom(true);
+    }
+  };
+
+  // Room resizing handlers
+  const handleRoomResizeStart = (direction: string, e: React.MouseEvent) => {
+    if (!selectedRoom) return;
+    
+    const svgPoint = svgRef.current?.createSVGPoint();
+    if (svgPoint) {
+      svgPoint.x = e.clientX;
+      svgPoint.y = e.clientY;
+      const transformedPoint = svgPoint.matrixTransform(
+        svgRef.current?.getScreenCTM()?.inverse()
+      );
+      
+      setResizeStartX(transformedPoint.x);
+      setResizeStartY(transformedPoint.y);
+      setRoomStartX(selectedRoom.x);
+      setRoomStartY(selectedRoom.y);
+      setRoomStartWidth(selectedRoom.width);
+      setRoomStartHeight(selectedRoom.height);
+      setResizeDirection(direction);
+      setIsResizing(true);
+    }
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDraggingRoom && !isResizing) return;
+    
+    const svgPoint = svgRef.current?.createSVGPoint();
+    if (!svgPoint || !selectedRoom) return;
+    
+    svgPoint.x = e.clientX;
+    svgPoint.y = e.clientY;
+    const transformedPoint = svgPoint.matrixTransform(
+      svgRef.current?.getScreenCTM()?.inverse()
+    );
+    
+    if (isDraggingRoom) {
+      // Calculate the new position with drag offset
+      const deltaX = transformedPoint.x - dragStartX;
+      const deltaY = transformedPoint.y - dragStartY;
+      
+      const newX = snapToGrid(roomStartX + deltaX);
+      const newY = snapToGrid(roomStartY + deltaY);
+      
+      updateRoom(selectedRoom.id, { x: newX, y: newY });
+    } else if (isResizing && resizeDirection) {
+      // Handle resizing based on direction
+      const deltaX = transformedPoint.x - resizeStartX;
+      const deltaY = transformedPoint.y - resizeStartY;
+      
+      let newX = selectedRoom.x;
+      let newY = selectedRoom.y;
+      let newWidth = selectedRoom.width;
+      let newHeight = selectedRoom.height;
+      
+      if (resizeDirection.includes('n')) {
+        newY = snapToGrid(roomStartY + deltaY);
+        newHeight = snapToGrid(roomStartHeight - deltaY);
+        // Prevent negative height
+        if (newHeight < gridSize) {
+          newHeight = gridSize;
+          newY = roomStartY + roomStartHeight - gridSize;
+        }
+      }
+      if (resizeDirection.includes('s')) {
+        newHeight = snapToGrid(roomStartHeight + deltaY);
+        // Prevent negative height
+        if (newHeight < gridSize) {
+          newHeight = gridSize;
+        }
+      }
+      if (resizeDirection.includes('w')) {
+        newX = snapToGrid(roomStartX + deltaX);
+        newWidth = snapToGrid(roomStartWidth - deltaX);
+        // Prevent negative width
+        if (newWidth < gridSize) {
+          newWidth = gridSize;
+          newX = roomStartX + roomStartWidth - gridSize;
+        }
+      }
+      if (resizeDirection.includes('e')) {
+        newWidth = snapToGrid(roomStartWidth + deltaX);
+        // Prevent negative width
+        if (newWidth < gridSize) {
+          newWidth = gridSize;
+        }
+      }
+      
+      updateRoom(selectedRoom.id, { 
+        x: newX, 
+        y: newY, 
+        width: newWidth, 
+        height: newHeight 
+      });
+    }
+  };
+
+  const handleMouseUp = () => {
+    setIsDraggingRoom(false);
+    setIsResizing(false);
+    setResizeDirection(null);
+  };
+
+  // Handle device drag and drop
   const handleDragStart = (e: React.MouseEvent, device: Device) => {
     e.stopPropagation();
     selectDevice(device);
@@ -156,6 +304,29 @@ const FloorPlan: React.FC<FloorPlanProps> = ({
     setDragging(false);
   };
 
+  useEffect(() => {
+    const handleGlobalMouseUp = () => {
+      handleMouseUp();
+    };
+    
+    const handleGlobalMouseMove = (e: MouseEvent) => {
+      if (isDraggingRoom || isResizing) {
+        const mouseEvent = e as unknown as React.MouseEvent;
+        handleMouseMove(mouseEvent);
+      }
+    };
+    
+    if (isDraggingRoom || isResizing) {
+      window.addEventListener('mousemove', handleGlobalMouseMove);
+      window.addEventListener('mouseup', handleGlobalMouseUp);
+    }
+    
+    return () => {
+      window.removeEventListener('mousemove', handleGlobalMouseMove);
+      window.removeEventListener('mouseup', handleGlobalMouseUp);
+    };
+  }, [isDraggingRoom, isResizing, selectedRoom]);
+
   const viewBox = "0 0 1050 1050";
 
   return (
@@ -165,7 +336,16 @@ const FloorPlan: React.FC<FloorPlanProps> = ({
         viewBox={viewBox}
         className={`w-full h-full ${selectedDeviceType ? 'cursor-crosshair' : 'cursor-grab'} active:cursor-grabbing`}
         onClick={handleClick}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
       >
+        <defs>
+          <pattern id="grid" width={gridSize} height={gridSize} patternUnits="userSpaceOnUse">
+            <path d={`M ${gridSize} 0 L 0 0 0 ${gridSize}`} fill="none" stroke="rgba(0,0,0,0.1)" strokeWidth="0.5" />
+          </pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#grid)" />
+        
         {rooms.map((room) => (
           <g key={room.id}>
             <rect
@@ -190,6 +370,14 @@ const FloorPlan: React.FC<FloorPlanProps> = ({
             >
               {room.name}
             </text>
+            
+            {selectedRoom?.id === room.id && (
+              <RoomHandles 
+                room={room}
+                onDragStart={handleRoomDragStart}
+                onResizeStart={handleRoomResizeStart}
+              />
+            )}
           </g>
         ))}
 
