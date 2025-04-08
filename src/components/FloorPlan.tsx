@@ -25,6 +25,7 @@ interface FloorPlanProps {
   selectDevice: (device: Device | null) => void;
   selectRoom: (room: Room | null) => void;
   updateRoom: (id: string, updates: Partial<Room>) => void;
+  isLoading?: boolean;
 }
 
 const FloorPlan: React.FC<FloorPlanProps> = ({
@@ -38,6 +39,7 @@ const FloorPlan: React.FC<FloorPlanProps> = ({
   selectDevice,
   selectRoom,
   updateRoom,
+  isLoading = false,
 }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const [dragging, setDragging] = useState(false);
@@ -57,11 +59,20 @@ const FloorPlan: React.FC<FloorPlanProps> = ({
   const [roomStartWidth, setRoomStartWidth] = useState(0);
   const [roomStartHeight, setRoomStartHeight] = useState(0);
   
-  // Grid snapping
+  // Grid and frame configuration
   const gridSize = 10; // Grid size in SVG units
+  const margin = 50; 
+  const workingWidth = 950;
+  const workingHeight = 950;
+  const totalWidth = workingWidth + (margin * 2);
+  const totalHeight = workingHeight + (margin * 2);
   
   const snapToGrid = (value: number): number => {
     return Math.round(value / gridSize) * gridSize;
+  };
+
+  const ensurePositiveCoordinate = (value: number): number => {
+    return Math.max(margin, value);
   };
 
   const walls = useMemo<Wall[]>(() => {
@@ -157,7 +168,10 @@ const FloorPlan: React.FC<FloorPlanProps> = ({
         const snappedX = snapToGrid(transformedPoint.x);
         const snappedY = snapToGrid(transformedPoint.y);
         
-        addDevice(snappedX, snappedY);
+        const safeX = ensurePositiveCoordinate(snappedX);
+        const safeY = ensurePositiveCoordinate(snappedY);
+        
+        addDevice(safeX, safeY);
       }
     }
   };
@@ -234,8 +248,8 @@ const FloorPlan: React.FC<FloorPlanProps> = ({
       const deltaX = transformedPoint.x - dragStartX;
       const deltaY = transformedPoint.y - dragStartY;
       
-      const newX = snapToGrid(roomStartX + deltaX);
-      const newY = snapToGrid(roomStartY + deltaY);
+      const newX = ensurePositiveCoordinate(snapToGrid(roomStartX + deltaX));
+      const newY = ensurePositiveCoordinate(snapToGrid(roomStartY + deltaY));
       
       updateRoom(selectedRoom.id, { x: newX, y: newY });
     } else if (isResizing && resizeDirection) {
@@ -304,7 +318,9 @@ const FloorPlan: React.FC<FloorPlanProps> = ({
   };
 
   const handleDragEnd = (id: string, x: number, y: number) => {
-    updateDevicePosition(id, x, y);
+    const safeX = ensurePositiveCoordinate(x);
+    const safeY = ensurePositiveCoordinate(y);
+    updateDevicePosition(id, safeX, safeY);
     setDragging(false);
   };
 
@@ -331,99 +347,184 @@ const FloorPlan: React.FC<FloorPlanProps> = ({
     };
   }, [isDraggingRoom, isResizing, selectedRoom]);
 
-  const viewBox = "0 0 1050 1050";
+  const viewBox = `0 0 ${totalWidth} ${totalHeight}`;
+  const isEmpty = rooms.length === 0 && devices.length === 0;
 
   return (
     <div className="flex-1 bg-gray-100 overflow-auto">
-      <svg
-        ref={svgRef}
-        viewBox={viewBox}
-        className={`w-full h-full ${selectedDeviceType ? 'cursor-crosshair' : 'cursor-grab'} active:cursor-grabbing select-none`}
-        onClick={handleClick}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-      >
-        <defs>
-          <pattern id="grid" width={gridSize} height={gridSize} patternUnits="userSpaceOnUse">
-            <path d={`M ${gridSize} 0 L 0 0 0 ${gridSize}`} fill="none" stroke="rgba(0,0,0,0.1)" strokeWidth="0.5" />
-          </pattern>
-        </defs>
-        <rect width="100%" height="100%" fill="url(#grid)" />
-        
-        {rooms.map((room) => (
-          <g key={room.id}>
-            <rect
-              x={room.x}
-              y={room.y}
-              width={room.width}
-              height={room.height}
-              fill={room.color ? `${room.color}20` : 'none'}
-              stroke={room.color || '#999'}
-              strokeWidth={selectedRoom?.id === room.id ? "4" : "2"}
-              strokeDasharray={selectedRoom?.id === room.id ? "" : "5,5"}
-              className="cursor-pointer"
-              onClick={(e) => handleRoomClick(e, room)}
-            />
-            <text
-              x={room.x + room.width / 2}
-              y={room.y + room.height / 2}
-              textAnchor="middle"
-              fill={room.color || '#999'}
-              fontSize="14"
-              pointerEvents="none"
-              className='select-none'
-            >
-              {room.name}
-            </text>
-            
-            {selectedRoom?.id === room.id && (
-              <RoomHandles 
-                room={room}
-                onDragStart={handleRoomDragStart}
-                onResizeStart={handleRoomResizeStart}
-              />
-            )}
-          </g>
-        ))}
-
-        {wallLengths.map((wall) => (
-          <g key={wall.id}>
-            <line 
-              x1={wall.x1} 
-              y1={wall.y1} 
-              x2={wall.x2} 
-              y2={wall.y2} 
-              stroke={wall.color || '#000'} 
-              strokeWidth="3" 
-            />
-            <text
-              x={(wall.x1 + wall.x2) / 2}
-              y={(wall.y1 + wall.y2) / 2}
-              dx={wall.y1 === wall.y2 ? 0 : -15}
-              dy={wall.x1 === wall.x2 ? 15 : 0}
-              textAnchor="middle"
-              fill={wall.color || '#333'}
-              fontSize="12"
-              fontWeight="bold"
-              className="select-none"
-              pointerEvents="none"
-            >
-              {wall.length}
-            </text>
-          </g>
-        ))}
-
-        {devices.map((device) => (
-          <DeviceComponent
-            key={device.id}
-            device={device}
-            selected={selectedDevice?.id === device.id}
-            onClick={(e) => handleDeviceClick(e, device)}
-            onDragStart={(e) => handleDragStart(e, device)}
-            onDragEnd={handleDragEnd}
+      {isLoading ? (
+        <div className="flex h-full items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-500 mx-auto mb-4"></div>
+            <p className="text-xl font-semibold text-gray-700">Loading your floorplan...</p>
+          </div>
+        </div>
+      ) : (
+        <svg
+          ref={svgRef}
+          viewBox={viewBox}
+          className={`w-full h-full ${selectedDeviceType ? 'cursor-crosshair' : 'cursor-grab'} active:cursor-grabbing select-none`}
+          onClick={handleClick}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+        >
+          <defs>
+            <pattern id="grid" width={gridSize} height={gridSize} patternUnits="userSpaceOnUse">
+              <path d={`M ${gridSize} 0 L 0 0 0 ${gridSize}`} fill="none" stroke="rgba(0,0,0,0.1)" strokeWidth="0.5" />
+            </pattern>
+          </defs>
+          
+          {/* Frame and background */}
+          <rect 
+            x="0" 
+            y="0" 
+            width={totalWidth} 
+            height={totalHeight} 
+            fill="#f9fafb" 
+            stroke="none" 
           />
-        ))}
-      </svg>
+          
+          {/* Grid working area with frame */}
+          <rect 
+            x={margin} 
+            y={margin} 
+            width={workingWidth} 
+            height={workingHeight} 
+            fill="url(#grid)" 
+            stroke="#2563eb" 
+            strokeWidth="2"
+            rx="5"
+            ry="5"
+          />
+          
+          {isEmpty && (
+            <g>
+              <rect 
+                x={margin + 275} 
+                y={margin + 350} 
+                width="400" 
+                height="250" 
+                rx="10" 
+                ry="10" 
+                fill="rgba(255,255,255,0.9)"
+                stroke="#ccc"
+                strokeWidth="2"
+              />
+              <text 
+                x={margin + 475} 
+                y={margin + 440} 
+                textAnchor="middle" 
+                fontSize="24" 
+                fontWeight="bold"
+                fill="#666"
+              >
+                Welcome to Smart Home Planner
+              </text>
+              <text 
+                x={margin + 475} 
+                y={margin + 480} 
+                textAnchor="middle" 
+                fontSize="16" 
+                fill="#666"
+              >
+                To get started, create a room using
+              </text>
+              <text 
+                x={margin + 475} 
+                y={margin + 510} 
+                textAnchor="middle" 
+                fontSize="16" 
+                fill="#666"
+              >
+                the Room Management panel or
+              </text>
+              <text 
+                x={margin + 475} 
+                y={margin + 540} 
+                textAnchor="middle" 
+                fontSize="16" 
+                fill="#666"
+              >
+                import an existing configuration.
+              </text>
+            </g>
+          )}
+          
+          {rooms.map((room) => (
+            <g key={room.id}>
+              <rect
+                x={room.x}
+                y={room.y}
+                width={room.width}
+                height={room.height}
+                fill={room.color ? `${room.color}20` : 'none'}
+                stroke={room.color || '#999'}
+                strokeWidth={selectedRoom?.id === room.id ? "4" : "2"}
+                strokeDasharray={selectedRoom?.id === room.id ? "" : "5,5"}
+                className="cursor-pointer"
+                onClick={(e) => handleRoomClick(e, room)}
+              />
+              <text
+                x={room.x + room.width / 2}
+                y={room.y + room.height / 2}
+                textAnchor="middle"
+                fill={room.color || '#999'}
+                fontSize="14"
+                pointerEvents="none"
+                className='select-none'
+              >
+                {room.name}
+              </text>
+              
+              {selectedRoom?.id === room.id && (
+                <RoomHandles 
+                  room={room}
+                  onDragStart={handleRoomDragStart}
+                  onResizeStart={handleRoomResizeStart}
+                />
+              )}
+            </g>
+          ))}
+
+          {wallLengths.map((wall) => (
+            <g key={wall.id}>
+              <line 
+                x1={wall.x1} 
+                y1={wall.y1} 
+                x2={wall.x2} 
+                y2={wall.y2} 
+                stroke={wall.color || '#000'} 
+                strokeWidth="3" 
+              />
+              <text
+                x={(wall.x1 + wall.x2) / 2}
+                y={(wall.y1 + wall.y2) / 2}
+                dx={wall.y1 === wall.y2 ? 0 : -15}
+                dy={wall.x1 === wall.x2 ? 15 : 0}
+                textAnchor="middle"
+                fill={wall.color || '#333'}
+                fontSize="12"
+                fontWeight="bold"
+                className="select-none"
+                pointerEvents="none"
+              >
+                {wall.length}
+              </text>
+            </g>
+          ))}
+
+          {devices.map((device) => (
+            <DeviceComponent
+              key={device.id}
+              device={device}
+              selected={selectedDevice?.id === device.id}
+              onClick={(e) => handleDeviceClick(e, device)}
+              onDragStart={(e) => handleDragStart(e, device)}
+              onDragEnd={handleDragEnd}
+            />
+          ))}
+        </svg>
+      )}
     </div>
   );
 };

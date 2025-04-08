@@ -11,14 +11,8 @@ export default function SmartHomePlanner() {
   const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
   const [selectedMountPosition, setSelectedMountPosition] = useState<MountPosition>(MountPosition.WALL_MEDIUM);
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
-  const [rooms, setRooms] = useState<Room[]>([
-    { id: 'room1', name: 'Living Room', x: 0, y: 580, width: 430, height: 370, color: '#3B82F6' }, // Blue
-    { id: 'room2', name: 'Bedroom', x: 430, y: 650, width: 428, height: 300, color: '#8B5CF6' },   // Purple
-    { id: 'room3', name: 'Office', x: 490, y: 60, width: 368, height: 590, color: '#10B981' },     // Green
-    { id: 'kitchen', name: 'Kitchen', x: 0, y: 150, width: 480, height: 290, color: '#F59E0B' },   // Amber
-    { id: 'bathroom', name: 'Bathroom', x: 0, y: 0, width: 225, height: 150, color: '#06B6D4' }, // Cyan
-    { id: 'hallway', name: 'Hallway', x: 225, y: 0, width: 255, height: 150, color: '#6B7280' }, // Gray
-  ]);
+  const [rooms, setRooms] = useState<Room[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const addDevice = (x: number, y: number) => {
     if (!selectedDeviceType) return;
@@ -90,6 +84,7 @@ export default function SmartHomePlanner() {
   const importConfiguration = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
+      setIsLoading(true);
       const reader = new FileReader();
       reader.onload = (e) => {
         try {
@@ -100,6 +95,10 @@ export default function SmartHomePlanner() {
           }
         } catch (error) {
           console.error('Error parsing configuration file:', error);
+        } finally {
+          setTimeout(() => {
+            setIsLoading(false);
+          }, 300);
         }
       };
       reader.readAsText(file);
@@ -149,6 +148,7 @@ export default function SmartHomePlanner() {
 
   // Effect to load saved configuration
   useEffect(() => {
+    setIsLoading(true);
     const savedDevices = localStorage.getItem('smart-home-devices');
     if (savedDevices) {
       try {
@@ -157,9 +157,7 @@ export default function SmartHomePlanner() {
         console.error('Error loading saved configuration:', error);
       }
     }
-  }, []);
-
-  useEffect(() => {
+    
     const savedRooms = localStorage.getItem('smart-home-rooms');
     if (savedRooms) {
       try {
@@ -168,6 +166,11 @@ export default function SmartHomePlanner() {
         console.error('Error loading saved rooms:', error);
       }
     }
+    
+    // Simulate a small delay to prevent flashing if loading is very quick
+    setTimeout(() => {
+      setIsLoading(false);
+    }, 300);
   }, []);
 
   return (
@@ -207,6 +210,7 @@ export default function SmartHomePlanner() {
           selectedRoom={selectedRoom}
           selectRoom={setSelectedRoom}
           updateRoom={updateRoom}
+          isLoading={isLoading}
         />
       </div>
     </div>
