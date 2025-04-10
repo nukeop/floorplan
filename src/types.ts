@@ -11,16 +11,16 @@ export enum DeviceType {
     THERMOSTAT = 'thermostat',
     CEILING_LIGHT = 'ceiling-light',
     CEILING_SENSOR = 'ceiling-sensor',
-  }
-  
-  export enum MountPosition {
+}
+
+export enum MountPosition {
     WALL_LOW = 'wall-low',
     WALL_MEDIUM = 'wall-medium',
     WALL_HIGH = 'wall-high',
     CEILING = 'ceiling',
 }
-  
-  export interface Device {
+
+export interface Device {
     id: string;
     type: DeviceType;
     x: number;
@@ -28,9 +28,20 @@ export enum DeviceType {
     rotation: number;
     position: MountPosition;
     description?: string;
-  }
-  
-  export interface Room {
+    notes?: string;
+    groupId?: string;
+}
+
+export interface DeviceGroup {
+    id: string;
+    x: number;
+    y: number;
+    devices: Device[];
+    notes: string;
+    expanded?: boolean; // Whether the group is currently expanded in the UI
+}
+
+export interface Room {
     id: string;
     name: string;
     x: number;
@@ -38,4 +49,4 @@ export enum DeviceType {
     width: number;
     height: number;
     color?: string;
-  }
+}

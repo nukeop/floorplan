@@ -1,31 +1,48 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { DeviceType, Device, Room, MountPosition } from '@/types';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import { DeviceType, Device, Room, MountPosition, DeviceGroup } from '@/types';
 
 interface FloorplanContextType {
   // State
   devices: Device[];
+  deviceGroups: DeviceGroup[];
   rooms: Room[];
   selectedDeviceType: DeviceType | null;
   selectedDevice: Device | null;
+  selectedGroup: DeviceGroup | null;
   selectedRoom: Room | null;
   selectedMountPosition: MountPosition;
   isLoading: boolean;
+  detailsPanelOpen: boolean;
   
   // Device operations
   addDevice: (x: number, y: number) => void;
   updateDevicePosition: (id: string, x: number, y: number) => void;
   updateDeviceMountPosition: (id: string, position: MountPosition) => void;
+  updateDeviceNotes: (id: string, notes: string) => void;
   selectDevice: (device: Device | null) => void;
   rotateDevice: (id: string) => void;
   deleteDevice: (id: string) => void;
   setSelectedDeviceType: (type: DeviceType | null) => void;
   setSelectedMountPosition: (position: MountPosition) => void;
   
+  // Group operations
+  createDeviceGroup: (deviceIds: string[]) => void;
+  updateGroupPosition: (id: string, x: number, y: number) => void;
+  updateGroupNotes: (id: string, notes: string) => void;
+  addDeviceToGroup: (deviceId: string, groupId: string) => void;
+  removeDeviceFromGroup: (deviceId: string, groupId: string) => void;
+  deleteGroup: (id: string) => void;
+  selectGroup: (group: DeviceGroup | null) => void;
+  
   // Room operations
   addRoom: (name: string, color: string) => void;
   updateRoom: (id: string, updates: Partial<Room>) => void;
   deleteRoom: (id: string) => void;
   selectRoom: (room: Room | null) => void;
+  
+  // UI operations
+  openDetailsPanel: () => void;
+  closeDetailsPanel: () => void;
   
   // Configuration operations
   exportConfiguration: () => void;
@@ -38,16 +55,19 @@ interface FloorplanProviderProps {
   children: ReactNode;
 }
 
-// Provider component
 export const FloorplanProvider: React.FC<FloorplanProviderProps> = ({ children }) => {
   const [devices, setDevices] = useState<Device[]>([]);
+  const [deviceGroups, setDeviceGroups] = useState<DeviceGroup[]>([]);
   const [selectedDeviceType, setSelectedDeviceType] = useState<DeviceType | null>(null);
   const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
+  const [selectedGroup, setSelectedGroup] = useState<DeviceGroup | null>(null);
   const [selectedMountPosition, setSelectedMountPosition] = useState<MountPosition>(MountPosition.WALL_MEDIUM);
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [detailsPanelOpen, setDetailsPanelOpen] = useState<boolean>(false);
 
+  // Device operations
   const addDevice = (x: number, y: number) => {
     if (!selectedDeviceType) return;
     
@@ -80,10 +100,19 @@ export const FloorplanProvider: React.FC<FloorplanProviderProps> = ({ children }
     );
   };
 
+  const updateDeviceNotes = useCallback((id: string, notes: string) => {
+    setDevices(currentDevices => 
+      currentDevices.map(device => 
+        device.id === id ? { ...device, notes } : device
+      )
+    );
+  }, [selectedDevice]);
+
   const deleteDevice = (id: string) => {
     setDevices(devices.filter(device => device.id !== id));
     if (selectedDevice?.id === id) {
       setSelectedDevice(null);
+      closeDetailsPanel();
     }
   };
 
@@ -99,15 +128,192 @@ export const FloorplanProvider: React.FC<FloorplanProviderProps> = ({ children }
 
   const selectDevice = (device: Device | null) => {
     setSelectedDevice(device);
+    setSelectedGroup(null);
     if (device) {
       setSelectedRoom(null);
+      if (device.groupId) {
+        // If the device is part of a group, select the group instead
+        const group = deviceGroups.find(g => g.id === device.groupId);
+        if (group) {
+          setSelectedGroup(group);
+          setSelectedDevice(null);
+        }
+      } else {
+        openDetailsPanel();
+      }
     }
+  };
+
+  // Group operations
+  const createDeviceGroup = (deviceIds: string[]) => {
+    if (deviceIds.length < 2) return;
+
+    // Find devices to group
+    const devicesToGroup = devices.filter((d) => deviceIds.includes(d.id));
+    if (devicesToGroup.length < 2) return;
+
+    // Use position of first device as group position
+    const firstDevice = devicesToGroup[0];
+    const groupPosition = { x: firstDevice.x, y: firstDevice.y };
+
+    // Create new group
+    const newGroup: DeviceGroup = {
+      id: `group-${Date.now()}`,
+      x: groupPosition.x,
+      y: groupPosition.y,
+      devices: [],
+      notes: '',
+    };
+
+    // Update devices to be part of this group
+    const updatedDevices = devices.map((device) => {
+      if (deviceIds.includes(device.id)) {
+        return { ...device, groupId: newGroup.id };
+      }
+      return device;
+    });
+
+    // Add devices to group (creating copies to avoid reference issues)
+    const groupDevices = devicesToGroup.map((d) => ({ ...d, groupId: newGroup.id }));
+    newGroup.devices = groupDevices;
+
+    // Update state
+    setDevices(updatedDevices);
+    setDeviceGroups([...deviceGroups, newGroup]);
+    setSelectedGroup(newGroup);
+    setSelectedDevice(null);
+    openDetailsPanel();
+  };
+
+  const updateGroupPosition = useCallback((id: string, x: number, y: number) => {
+    setDeviceGroups(
+      deviceGroups.map(group => 
+        group.id === id ? { ...group, x, y } : group
+      )
+    );
+  }, [deviceGroups, selectedDevice]);
+
+  const updateGroupNotes = useCallback((id: string, notes: string) => {
+    setDeviceGroups(currentGroups => 
+      currentGroups.map(group => 
+        group.id === id ? { ...group, notes } : group
+      )
+    );
+  }, [deviceGroups, selectedDevice]);
+
+  const addDeviceToGroup = (deviceId: string, groupId: string) => {
+    // Find the device and group
+    const device = devices.find((d) => d.id === deviceId);
+    const group = deviceGroups.find((g) => g.id === groupId);
+
+    if (!device || !group) return;
+
+    // Update the device to be part of the group
+    const updatedDevices = devices.map((d) => {
+      if (d.id === deviceId) {
+        return { ...d, groupId: groupId };
+      }
+      return d;
+    });
+
+    // Add the device to the group
+    const updatedGroups = deviceGroups.map((g) => {
+      if (g.id === groupId) {
+        return {
+          ...g,
+          devices: [...g.devices, { ...device, groupId }],
+        };
+      }
+      return g;
+    });
+
+    // Update state
+    setDevices(updatedDevices);
+    setDeviceGroups(updatedGroups);
+  };
+
+  const removeDeviceFromGroup = (deviceId: string, groupId: string) => {
+    // Update the device to no longer be part of the group
+    const updatedDevices = devices.map((d) => {
+      if (d.id === deviceId) {
+        const { groupId: _, ...deviceWithoutGroup } = d;
+        return deviceWithoutGroup;
+      }
+      return d;
+    });
+
+    // Remove the device from the group
+    const updatedGroups = deviceGroups.map((g) => {
+      if (g.id === groupId) {
+        return {
+          ...g,
+          devices: g.devices.filter(d => d.id !== deviceId),
+        };
+      }
+      return g;
+    });
+
+    // Check if group should be deleted (has fewer than 2 devices)
+    const groupToUpdate = updatedGroups.find(g => g.id === groupId);
+    if (groupToUpdate && groupToUpdate.devices.length < 2) {
+      // If fewer than 2 devices, delete the group
+      const finalGroups = updatedGroups.filter(g => g.id !== groupId);
+      setDeviceGroups(finalGroups);
+      if (selectedGroup?.id === groupId) {
+        setSelectedGroup(null);
+        closeDetailsPanel();
+      }
+    } else {
+      setDeviceGroups(updatedGroups);
+    }
+
+    setDevices(updatedDevices);
+  };
+
+  const deleteGroup = (id: string) => {
+    // Update all devices in the group to no longer be part of it
+    const updatedDevices = devices.map((device) => {
+      if (device.groupId === id) {
+        const { groupId, ...deviceWithoutGroup } = device;
+        return deviceWithoutGroup;
+      }
+      return device;
+    });
+
+    // Remove the group
+    setDeviceGroups(deviceGroups.filter(group => group.id !== id));
+    setDevices(updatedDevices);
+
+    if (selectedGroup?.id === id) {
+      setSelectedGroup(null);
+      closeDetailsPanel();
+    }
+  };
+
+  const selectGroup = (group: DeviceGroup | null) => {
+    setSelectedGroup(group);
+    setSelectedDevice(null);
+    setSelectedRoom(null);
+    
+    if (group) {
+      openDetailsPanel();
+    }
+  };
+
+  // UI operations
+  const openDetailsPanel = () => {
+    setDetailsPanelOpen(true);
+  };
+
+  const closeDetailsPanel = () => {
+    setDetailsPanelOpen(false);
   };
 
   const exportConfiguration = () => {
     const data = {
       rooms,
       devices,
+      deviceGroups
     };
     
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -130,9 +336,17 @@ export const FloorplanProvider: React.FC<FloorplanProviderProps> = ({ children }
       reader.onload = (e) => {
         try {
           const config = JSON.parse(e.target?.result as string);
+          
+          // Handle old-format configurations without deviceGroups
           if (config.rooms && config.devices) {
             setRooms(config.rooms);
             setDevices(config.devices);
+            
+            if (config.deviceGroups) {
+              setDeviceGroups(config.deviceGroups);
+            } else {
+              setDeviceGroups([]);
+            }
           }
         } catch (error) {
           console.error('Error parsing configuration file:', error);
@@ -178,6 +392,8 @@ export const FloorplanProvider: React.FC<FloorplanProviderProps> = ({ children }
     setSelectedRoom(room);
     if (room) {
       setSelectedDevice(null);
+      setSelectedGroup(null);
+      closeDetailsPanel();
     }
   };
 
@@ -189,6 +405,12 @@ export const FloorplanProvider: React.FC<FloorplanProviderProps> = ({ children }
   }, [devices]);
 
   useEffect(() => {
+    if (deviceGroups.length > 0) {
+      localStorage.setItem('smart-home-device-groups', JSON.stringify(deviceGroups));
+    }
+  }, [deviceGroups]);
+
+  useEffect(() => {
     if (rooms.length > 0) {
       localStorage.setItem('smart-home-rooms', JSON.stringify(rooms));
     }
@@ -197,12 +419,22 @@ export const FloorplanProvider: React.FC<FloorplanProviderProps> = ({ children }
   // Effect to load saved configuration
   useEffect(() => {
     setIsLoading(true);
+    
     const savedDevices = localStorage.getItem('smart-home-devices');
     if (savedDevices) {
       try {
         setDevices(JSON.parse(savedDevices));
       } catch (error) {
-        console.error('Error loading saved configuration:', error);
+        console.error('Error loading saved devices:', error);
+      }
+    }
+    
+    const savedGroups = localStorage.getItem('smart-home-device-groups');
+    if (savedGroups) {
+      try {
+        setDeviceGroups(JSON.parse(savedGroups));
+      } catch (error) {
+        console.error('Error loading saved device groups:', error);
       }
     }
     
@@ -250,28 +482,45 @@ export const FloorplanProvider: React.FC<FloorplanProviderProps> = ({ children }
   const value: FloorplanContextType = {
     // State
     devices,
+    deviceGroups,
     rooms,
     selectedDeviceType,
     selectedDevice,
+    selectedGroup,
     selectedRoom,
     selectedMountPosition,
     isLoading,
+    detailsPanelOpen,
     
     // Device operations
     addDevice,
     updateDevicePosition,
     updateDeviceMountPosition,
+    updateDeviceNotes,
     selectDevice,
     rotateDevice,
     deleteDevice,
     setSelectedDeviceType,
     setSelectedMountPosition,
     
+    // Group operations
+    createDeviceGroup,
+    updateGroupPosition,
+    updateGroupNotes,
+    addDeviceToGroup,
+    removeDeviceFromGroup,
+    deleteGroup,
+    selectGroup,
+    
     // Room operations
     addRoom,
     updateRoom,
     deleteRoom,
     selectRoom,
+    
+    // UI operations
+    openDetailsPanel,
+    closeDetailsPanel,
     
     // Configuration operations
     exportConfiguration,

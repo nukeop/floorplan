@@ -1,6 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { Device, Room } from '@/types';
+import { Device, Room, DeviceGroup } from '@/types';
 import DeviceComponent from './DeviceComponent';
+import GroupedDeviceComponent from './GroupedDeviceComponent';
 import RoomHandles from './RoomHandles';
 import { useFloorplan } from '@/contexts/FloorplanContext';
 import { useGrid } from '@/hooks/useGrid';
@@ -10,17 +11,22 @@ const FloorPlan: React.FC = () => {
   const {
     rooms,
     devices,
+    deviceGroups,
     selectedDeviceType,
     selectedDevice,
+    selectedGroup,
     selectedRoom,
     addDevice,
     updateDevicePosition,
+    updateGroupPosition,
     selectDevice,
+    selectGroup,
     selectRoom,
     updateRoom,
-    isLoading
+    isLoading,
+    createDeviceGroup
   } = useFloorplan();
-
+  
   const { 
     gridSize, 
     margin, 
@@ -33,6 +39,7 @@ const FloorPlan: React.FC = () => {
   
   const svgRef = useRef<SVGSVGElement>(null);
   const [dragging, setDragging] = useState(false);
+  const [draggingDeviceId, setDraggingDeviceId] = useState<string | null>(null);
   
   // Room dragging state
   const [isDraggingRoom, setIsDraggingRoom] = useState(false);
@@ -52,10 +59,11 @@ const FloorPlan: React.FC = () => {
   const handleClick = (e: React.MouseEvent<SVGSVGElement>) => {
     if (e.target === svgRef.current) {
       selectDevice(null);
+      selectGroup(null);
       selectRoom(null);
       return;
     }
-
+    
     if (selectedDeviceType && !dragging) {
       const svgPoint = svgRef.current?.createSVGPoint();
       if (svgPoint) {
@@ -79,6 +87,7 @@ const FloorPlan: React.FC = () => {
   const handleRoomClick = (e: React.MouseEvent, room: Room) => {
     e.stopPropagation();
     selectDevice(null);
+    selectGroup(null);
     selectRoom(room);
   };
 
@@ -86,6 +95,13 @@ const FloorPlan: React.FC = () => {
     e.stopPropagation();
     selectRoom(null);
     selectDevice(device);
+  };
+
+  const handleGroupClick = (e: React.MouseEvent, group: DeviceGroup) => {
+    e.stopPropagation();
+    selectRoom(null);
+    selectDevice(null);
+    selectGroup(group);
   };
 
   // Room dragging handlers
@@ -208,6 +224,29 @@ const FloorPlan: React.FC = () => {
     setIsDraggingRoom(false);
     setIsResizing(false);
     setResizeDirection(null);
+    
+    // Check if a dragged device should be grouped with another
+    if (dragging && draggingDeviceId) {
+      const deviceToCheck = devices.find(d => d.id === draggingDeviceId);
+      
+      if (deviceToCheck && !deviceToCheck.groupId) {
+        // Find if there's another device at this position
+        const targetDevice = devices.find(
+          d => d.id !== draggingDeviceId && 
+             !d.groupId && 
+             Math.abs(d.x - deviceToCheck.x) < 5 && 
+             Math.abs(d.y - deviceToCheck.y) < 5
+        );
+        
+        if (targetDevice) {
+          // Create a new group with these two devices
+          createDeviceGroup([deviceToCheck.id, targetDevice.id]);
+        }
+      }
+    }
+    
+    setDragging(false);
+    setDraggingDeviceId(null);
   };
 
   // Handle device drag and drop
@@ -215,12 +254,28 @@ const FloorPlan: React.FC = () => {
     e.stopPropagation();
     selectDevice(device);
     setDragging(true);
+    setDraggingDeviceId(device.id);
   };
 
   const handleDragEnd = (id: string, x: number, y: number) => {
     const safeX = ensurePositiveCoordinate(x);
     const safeY = ensurePositiveCoordinate(y);
     updateDevicePosition(id, safeX, safeY);
+    setDragging(false);
+    setDraggingDeviceId(null);
+  };
+
+  // Handle group drag and drop
+  const handleGroupDragStart = (e: React.MouseEvent, group: DeviceGroup) => {
+    e.stopPropagation();
+    selectGroup(group);
+    setDragging(true);
+  };
+
+  const handleGroupDragEnd = (id: string, x: number, y: number) => {
+    const safeX = ensurePositiveCoordinate(x);
+    const safeY = ensurePositiveCoordinate(y);
+    updateGroupPosition(id, safeX, safeY);
     setDragging(false);
   };
 
@@ -245,8 +300,11 @@ const FloorPlan: React.FC = () => {
       window.removeEventListener('mousemove', handleGlobalMouseMove);
       window.removeEventListener('mouseup', handleGlobalMouseUp);
     };
-  }, [isDraggingRoom, isResizing, selectedRoom]);
+  }, [isDraggingRoom, isResizing, selectedRoom, dragging, draggingDeviceId]);
 
+  // Get devices that are not part of a group (for rendering)
+  const nonGroupedDevices = devices.filter(device => !device.groupId);
+  
   const isEmpty = rooms.length === 0 && devices.length === 0;
 
   return (
@@ -384,7 +442,6 @@ const FloorPlan: React.FC = () => {
               )}
             </g>
           ))}
-
           {wallLengths.map((wall) => (
             <g key={wall.id}>
               <line 
@@ -411,8 +468,21 @@ const FloorPlan: React.FC = () => {
               </text>
             </g>
           ))}
-
-          {devices.map((device) => (
+          
+          {/* Render device groups */}
+          {deviceGroups.map((group) => (
+            <GroupedDeviceComponent
+              key={group.id}
+              group={group}
+              selected={selectedGroup?.id === group.id}
+              onClick={(e) => handleGroupClick(e, group)}
+              onDragStart={(e) => handleGroupDragStart(e, group)}
+              onDragEnd={handleGroupDragEnd}
+            />
+          ))}
+          
+          {/* Render only non-grouped devices */}
+          {nonGroupedDevices.map((device) => (
             <DeviceComponent
               key={device.id}
               device={device}

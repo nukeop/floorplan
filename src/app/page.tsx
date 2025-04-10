@@ -3,7 +3,42 @@
 import React from 'react';
 import FloorPlan from '@/components/FloorPlan';
 import ControlPanel from '@/components/ControlPanel';
-import { FloorplanProvider } from '@/contexts/FloorplanContext';
+import DeviceDetailsPanel from '@/components/DeviceDetailsPanel';
+import { FloorplanProvider, useFloorplan } from '@/contexts/FloorplanContext';
+
+function FloorplanWithDetails() {
+  const {
+    selectedDevice,
+    selectedGroup,
+    detailsPanelOpen,
+    closeDetailsPanel,
+    updateDeviceNotes,
+    updateGroupNotes,
+    removeDeviceFromGroup,
+    updateDeviceMountPosition,
+    rotateDevice
+  } = useFloorplan();
+
+  return (
+    <div className="flex flex-1 overflow-hidden relative">
+      <ControlPanel />
+      <FloorPlan />
+      
+      {detailsPanelOpen && (
+        <DeviceDetailsPanel
+          device={selectedDevice}
+          group={selectedGroup}
+          onUpdateDeviceNotes={updateDeviceNotes}
+          onUpdateGroupNotes={updateGroupNotes}
+          onClose={closeDetailsPanel}
+          onRemoveDeviceFromGroup={removeDeviceFromGroup}
+          onChangeMountPosition={updateDeviceMountPosition}
+          onRotateDevice={rotateDevice}
+        />
+      )}
+    </div>
+  );
+}
 
 export default function SmartHomePlanner() {
   return (
@@ -13,10 +48,7 @@ export default function SmartHomePlanner() {
           <h1 className="text-2xl font-bold">Smart Home Planner</h1>
         </header>
         
-        <div className="flex flex-1 overflow-hidden">
-          <ControlPanel />
-          <FloorPlan />
-        </div>
+        <FloorplanWithDetails />
       </div>
     </FloorplanProvider>
   );

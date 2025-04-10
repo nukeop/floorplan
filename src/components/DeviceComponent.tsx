@@ -237,6 +237,26 @@ const DeviceComponent: React.FC<DeviceComponentProps> = ({
     );
   };
 
+  const renderNotesIndicator = () => {
+    if (!device.notes) return null;
+    
+    return (
+      <g transform="translate(10, 10)">
+        <path
+          d="M-4,-6 L4,-6 L4,6 L-4,6 Z"
+          fill="#ffeb3b"
+          stroke="#666"
+          strokeWidth="0.5"
+        />
+        <path
+          d="M-2,-4 L2,-4 M-2,-2 L2,-2 M-2,0 L2,0 M-2,2 L2,2"
+          stroke="#666"
+          strokeWidth="0.5"
+        />
+      </g>
+    );
+  };
+
   return (
     <svg
       ref={ref => { svgRef.current = ref; }}
@@ -254,6 +274,7 @@ const DeviceComponent: React.FC<DeviceComponentProps> = ({
     >
       {renderMountPositionIndicator()}
       {renderDeviceIcon()}
+      {renderNotesIndicator()}
     </svg>
   );
 };
