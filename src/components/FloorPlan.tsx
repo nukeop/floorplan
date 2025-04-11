@@ -57,7 +57,13 @@ const FloorPlan: React.FC = () => {
   const [roomStartHeight, setRoomStartHeight] = useState(0);
 
   const handleClick = (e: React.MouseEvent<SVGSVGElement>) => {
-    if (e.target === svgRef.current) {
+    const target = e.target as SVGElement;
+    
+    const isBackgroundClick = 
+      target === svgRef.current || 
+      target.getAttribute('data-background') === 'true';
+    
+    if (isBackgroundClick) {
       selectDevice(null);
       selectGroup(null);
       selectRoom(null);
@@ -339,6 +345,7 @@ const FloorPlan: React.FC = () => {
             height="100%" 
             fill="#f9fafb" 
             stroke="none" 
+            data-background="true"
           />
           
           {/* Grid working area with frame */}
@@ -352,6 +359,7 @@ const FloorPlan: React.FC = () => {
             strokeWidth="2"
             rx="5"
             ry="5"
+            data-background="true"
           />
           
           {isEmpty && (

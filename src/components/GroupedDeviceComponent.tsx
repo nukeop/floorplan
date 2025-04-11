@@ -1,5 +1,7 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { DeviceGroup } from '@/types';
+import { IoLayersOutline } from 'react-icons/io5';
+import { MdOutlineNotes } from 'react-icons/md';
 
 interface GroupedDeviceComponentProps {
   group: DeviceGroup;
@@ -57,7 +59,7 @@ const GroupedDeviceComponent: React.FC<GroupedDeviceComponentProps> = ({
     setDragging(true);
   };
 
-  const handleMouseMove = (e: MouseEvent) => {
+  const handleMouseMove = useCallback((e: MouseEvent) => {
     if (!dragging || !ctmInverseRef.current) return;
     
     const svgPoint = svgRef.current?.createSVGPoint();
@@ -83,15 +85,15 @@ const GroupedDeviceComponent: React.FC<GroupedDeviceComponentProps> = ({
         setPosition(positionRef.current);
       });
     }
-  };
+  }, [dragging]);
 
-  const handleMouseUp = () => {
+  const handleMouseUp = useCallback(() => {
     if (dragging) {
       setDragging(false);
       onDragEnd(group.id, positionRef.current.x, positionRef.current.y);
       ctmInverseRef.current = null;
     }
-  };
+  }, [dragging, group.id, onDragEnd]);
 
   useEffect(() => {
     if (dragging) {
@@ -105,7 +107,7 @@ const GroupedDeviceComponent: React.FC<GroupedDeviceComponentProps> = ({
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [dragging]);
+  }, [dragging, handleMouseMove, handleMouseUp]);
 
   useEffect(() => {
     if (!dragging) {
@@ -115,52 +117,6 @@ const GroupedDeviceComponent: React.FC<GroupedDeviceComponentProps> = ({
       positionRef.current = { x: snappedX, y: snappedY };
     }
   }, [group.x, group.y, dragging]);
-
-  const renderGroupedDevices = () => {
-    // Show a stack-like representation with slight offsets
-    return (
-      <g>
-        {/* Bottom layer (furthest back) */}
-        <rect 
-          x="-15" 
-          y="-15" 
-          width="30" 
-          height="30" 
-          fill="#e0e0e0" 
-          stroke="#666"
-          strokeWidth="1"
-          rx="4"
-          ry="4"
-        />
-        
-        {/* Middle layer */}
-        <rect 
-          x="-12" 
-          y="-12" 
-          width="30" 
-          height="30" 
-          fill="#f0f0f0" 
-          stroke="#666"
-          strokeWidth="1"
-          rx="4"
-          ry="4"
-        />
-        
-        {/* Top layer (most visible) */}
-        <rect 
-          x="-9" 
-          y="-9" 
-          width="30" 
-          height="30" 
-          fill="#ffffff" 
-          stroke={selected ? "#2196f3" : "#666"}
-          strokeWidth={selected ? 2 : 1}
-          rx="4"
-          ry="4"
-        />
-      </g>
-    );
-  };
 
   return (
     <svg
@@ -178,7 +134,25 @@ const GroupedDeviceComponent: React.FC<GroupedDeviceComponentProps> = ({
         willChange: dragging ? 'transform' : 'auto' // Rendering optimization
       }}
     >
-      {renderGroupedDevices()}
+      {/* Main container */}
+      <rect 
+        x="-16" 
+        y="-16" 
+        width="32" 
+        height="32" 
+        fill="white" 
+        stroke={selected ? "#2196f3" : "#666"}
+        strokeWidth={selected ? 2 : 1}
+        rx="4"
+        ry="4"
+      />
+      
+      {/* Group icon in the center */}
+      <foreignObject x="-14" y="-14" width="28" height="28">
+        <div className="flex items-center justify-center w-full h-full">
+          <IoLayersOutline size={20} color="#555" />
+        </div>
+      </foreignObject>
       
       {/* Group size indicator */}
       <circle cx="12" cy="-12" r="8" fill="#2196f3" />
@@ -188,19 +162,11 @@ const GroupedDeviceComponent: React.FC<GroupedDeviceComponentProps> = ({
       
       {/* Notes indicator if group has notes */}
       {group.notes && (
-        <g transform="translate(12, 12)">
-          <path
-            d="M-4,-6 L4,-6 L4,6 L-4,6 Z"
-            fill="#ffeb3b"
-            stroke="#666"
-            strokeWidth="0.5"
-          />
-          <path
-            d="M-2,-4 L2,-4 M-2,-2 L2,-2 M-2,0 L2,0 M-2,2 L2,2"
-            stroke="#666"
-            strokeWidth="0.5"
-          />
-        </g>
+        <foreignObject x="5" y="5" width="16" height="16">
+          <div className="flex items-center justify-center w-full h-full">
+            <MdOutlineNotes size={14} color="#555" />
+          </div>
+        </foreignObject>
       )}
     </svg>
   );

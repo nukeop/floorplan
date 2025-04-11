@@ -1,5 +1,17 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Device, MountPosition } from '@/types';
+import { MdOutlineNotes } from 'react-icons/md';
+import { 
+  BsOutlet, 
+  BsLightbulb,
+  BsThermometerHalf,
+  BsToggleOn, 
+  BsEthernet,
+  BsTv
+} from 'react-icons/bs';
+import { IoThermometerOutline } from 'react-icons/io5';
+import { GiSmartphone } from 'react-icons/gi';
+import { RiSensorLine } from 'react-icons/ri';
 
 interface DeviceComponentProps {
   device: Device;
@@ -47,6 +59,35 @@ const DeviceComponent: React.FC<DeviceComponentProps> = ({
     }
   };
 
+  const getDeviceBorderColor = () => {
+    switch (device.type) {
+      case 'socket':
+        return "#0ea5e9"; // Sky blue
+      case 'smart-socket':
+        return "#2563eb"; // Blue
+      case 'switch':
+        return "#10b981"; // Emerald
+      case 'smart-switch':
+        return "#059669"; // Green
+      case 'motion-sensor':
+      case 'ceiling-sensor':
+        return "#f59e0b"; // Amber
+      case 'temperature-sensor':
+        return "#ef4444"; // Red
+      case 'light':
+      case 'ceiling-light':
+        return "#f59e0b"; // Amber
+      case 'ethernet':
+        return "#6366f1"; // Indigo
+      case 'tv-outlet':
+        return "#7c3aed"; // Violet
+      case 'thermostat':
+        return "#ec4899"; // Pink
+      default:
+        return "#6b7280"; // Gray
+    }
+  };
+
   const handleMouseDown = (e: React.MouseEvent) => {
     e.stopPropagation();
     onClick(e);
@@ -71,7 +112,7 @@ const DeviceComponent: React.FC<DeviceComponentProps> = ({
     setDragging(true);
   };
 
-  const handleMouseMove = (e: MouseEvent) => {
+  const handleMouseMove = useCallback((e: MouseEvent) => {
     if (!dragging || !ctmInverseRef.current) return;
     
     const svgPoint = svgRef.current?.createSVGPoint();
@@ -91,22 +132,21 @@ const DeviceComponent: React.FC<DeviceComponentProps> = ({
       
       const newX = snapToGrid(initialDevicePosRef.current.x + dx);
       const newY = snapToGrid(initialDevicePosRef.current.y + dy);
-
       positionRef.current = { x: newX, y: newY };
       
       requestAnimationFrame(() => {
         setPosition(positionRef.current);
       });
     }
-  };
+  }, [dragging]);
 
-  const handleMouseUp = () => {
+  const handleMouseUp = useCallback(() => {
     if (dragging) {
       setDragging(false);
       onDragEnd(device.id, positionRef.current.x, positionRef.current.y);
       ctmInverseRef.current = null;
     }
-  };
+  }, [dragging, device.id, onDragEnd]);
 
   useEffect(() => {
     if (dragging) {
@@ -116,12 +156,11 @@ const DeviceComponent: React.FC<DeviceComponentProps> = ({
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     }
-
     return () => {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [dragging]);
+  }, [dragging, handleMouseMove, handleMouseUp]);
 
   useEffect(() => {
     if (!dragging) {
@@ -133,92 +172,73 @@ const DeviceComponent: React.FC<DeviceComponentProps> = ({
   }, [device.x, device.y, dragging]);
 
   const renderDeviceIcon = () => {
-    const strokeColor = selected ? "#2196f3" : "#000";
-    const strokeWidth = selected ? 2 : 1;
-    
-    switch (device.type) {
-      case 'socket':
-        return (
-          <g transform={`rotate(${device.rotation}, 0, 0)`}>
-            <circle cx="0" cy="0" r="10" fill="#fff" stroke={strokeColor} strokeWidth={strokeWidth} />
-            <circle cx="-3" cy="0" r="2" fill="#000" />
-            <circle cx="3" cy="0" r="2" fill="#000" />
-          </g>
-        );
-      case 'smart-socket':
-        return (
-          <g transform={`rotate(${device.rotation}, 0, 0)`}>
-            <circle cx="0" cy="0" r="10" fill="#aaf" stroke={strokeColor} strokeWidth={strokeWidth} />
-            <circle cx="-3" cy="0" r="2" fill="#000" />
-            <circle cx="3" cy="0" r="2" fill="#000" />
-          </g>
-        );
-      case 'switch':
-        return (
-          <g transform={`rotate(${device.rotation}, 0, 0)`}>
-            <rect x="-10" y="-10" width="20" height="20" fill="#fff" stroke={strokeColor} strokeWidth={strokeWidth} />
-            <line x1="-5" y1="0" x2="5" y2="0" stroke="#000" strokeWidth="2" />
-          </g>
-        );
-      case 'smart-switch':
-        return (
-          <g transform={`rotate(${device.rotation}, 0, 0)`}>
-            <rect x="-10" y="-10" width="20" height="20" fill="#aaf" stroke={strokeColor} strokeWidth={strokeWidth} />
-            <line x1="-5" y1="0" x2="5" y2="0" stroke="#000" strokeWidth="2" />
-          </g>
-        );
-      case 'motion-sensor':
-      case 'ceiling-sensor':
-        return (
-          <g transform={`rotate(${device.rotation}, 0, 0)`}>
-            <polygon points="0,-12 10,6 -10,6" fill="#ffa" stroke={strokeColor} strokeWidth={strokeWidth} />
-            <circle cx="0" cy="0" r="4" fill="#000" />
-          </g>
-        );
-      case 'temperature-sensor':
-        return (
-          <g transform={`rotate(${device.rotation}, 0, 0)`}>
-            <rect x="-8" y="-8" width="16" height="16" fill="#faa" stroke={strokeColor} strokeWidth={strokeWidth} />
-            <circle cx="0" cy="0" r="4" fill="#f00" />
-          </g>
-        );
-      case 'light':
-      case 'ceiling-light':
-        return (
-          <g transform={`rotate(${device.rotation}, 0, 0)`}>
-            <circle cx="0" cy="0" r="12" fill="#ff0" stroke={strokeColor} strokeWidth={strokeWidth} />
-            <line x1="-8" y1="-8" x2="8" y2="8" stroke="#000" strokeWidth="1" />
-            <line x1="-8" y1="8" x2="8" y2="-8" stroke="#000" strokeWidth="1" />
-          </g>
-        );
-      case 'ethernet':
-        return (
-          <g transform={`rotate(${device.rotation}, 0, 0)`}>
-            <rect x="-10" y="-10" width="20" height="20" fill="#0af" stroke={strokeColor} strokeWidth={strokeWidth} />
-            <rect x="-6" y="-4" width="12" height="8" fill="#fff" />
-          </g>
-        );
-      case 'tv-outlet':
-        return (
-          <g transform={`rotate(${device.rotation}, 0, 0)`}>
-            <rect x="-10" y="-10" width="20" height="20" fill="#aaa" stroke={strokeColor} strokeWidth={strokeWidth} />
-            <circle cx="0" cy="0" r="6" fill="#fff" />
-            <circle cx="0" cy="0" r="2" fill="#000" />
-          </g>
-        );
-      case 'thermostat':
-        return (
-          <g transform={`rotate(${device.rotation}, 0, 0)`}>
-            <rect x="-12" y="-12" width="24" height="24" rx="4" fill="#fff" stroke={strokeColor} strokeWidth={strokeWidth} />
-            <circle cx="0" cy="0" r="8" fill="#faa" />
-            <line x1="0" y1="-6" x2="0" y2="0" stroke="#000" strokeWidth="2" />
-          </g>
-        );
-      default:
-        return (
-          <circle cx="0" cy="0" r="10" fill="#ccc" stroke={strokeColor} strokeWidth={strokeWidth} />
-        );
-    }
+    const getIconProps = () => {
+      switch (device.type) {
+        case 'socket':
+          return { Icon: BsOutlet, size: 20 };
+        case 'smart-socket':
+          return { Icon: GiSmartphone, size: 20 };
+        case 'switch':
+          return { Icon: BsToggleOn, size: 20 };
+        case 'smart-switch':
+          return { Icon: BsToggleOn, size: 20 };
+        case 'motion-sensor':
+        case 'ceiling-sensor':
+          return { Icon: RiSensorLine, size: 20 };
+        case 'temperature-sensor':
+          return { Icon: IoThermometerOutline, size: 20 };
+        case 'light':
+        case 'ceiling-light':
+          return { Icon: BsLightbulb, size: 20 };
+        case 'ethernet':
+          return { Icon: BsEthernet, size: 20 };
+        case 'tv-outlet':
+          return { Icon: BsTv, size: 20 };
+        case 'thermostat':
+          return { Icon: BsThermometerHalf, size: 20 };
+        default:
+          return { Icon: MdOutlineNotes, size: 20 };
+      }
+    };
+
+    const { Icon, size } = getIconProps();
+    const borderColor = getDeviceBorderColor();
+    const containerStroke = selected ? "#2196f3" : borderColor;
+    const containerStrokeWidth = selected ? 2 : 1.5;
+    const isRectangular = ['switch', 'smart-switch', 'thermostat', 'ethernet', 'tv-outlet', 'temperature-sensor'].includes(device.type);
+
+    return (
+      <g transform={`rotate(${device.rotation}, 0, 0)`}>
+        {isRectangular ? (
+          <rect 
+            x="-16" 
+            y="-16" 
+            width="32" 
+            height="32" 
+            fill="white"
+            stroke={containerStroke}
+            strokeWidth={containerStrokeWidth}
+            rx="4"
+            ry="4"
+          />
+        ) : (
+          <circle 
+            cx="0" 
+            cy="0" 
+            r="16" 
+            fill="white"
+            stroke={containerStroke}
+            strokeWidth={containerStrokeWidth}
+          />
+        )}
+        
+        <foreignObject x="-14" y="-14" width="28" height="28">
+          <div className="flex items-center justify-center w-full h-full">
+            <Icon size={size} color="#555" />
+          </div>
+        </foreignObject>
+      </g>
+    );
   };
 
   const renderMountPositionIndicator = () => {
@@ -242,17 +262,12 @@ const DeviceComponent: React.FC<DeviceComponentProps> = ({
     
     return (
       <g transform="translate(10, 10)">
-        <path
-          d="M-4,-6 L4,-6 L4,6 L-4,6 Z"
-          fill="#ffeb3b"
-          stroke="#666"
-          strokeWidth="0.5"
-        />
-        <path
-          d="M-2,-4 L2,-4 M-2,-2 L2,-2 M-2,0 L2,0 M-2,2 L2,2"
-          stroke="#666"
-          strokeWidth="0.5"
-        />
+        <circle cx="0" cy="0" r="7" fill="#fffde7" stroke="#666" strokeWidth="1" />
+        <foreignObject x="-5" y="-5" width="10" height="10">
+          <div className="flex items-center justify-center w-full h-full">
+            <MdOutlineNotes size={8} color="#555" />
+          </div>
+        </foreignObject>
       </g>
     );
   };
@@ -262,9 +277,9 @@ const DeviceComponent: React.FC<DeviceComponentProps> = ({
       ref={ref => { svgRef.current = ref; }}
       x={position.x}
       y={position.y}
-      width="32"
-      height="32"
-      viewBox="-16 -16 32 32"
+      width="40" 
+      height="40"
+      viewBox="-20 -20 40 40"
       style={{ 
         cursor: dragging ? 'grabbing' : 'pointer',
         opacity: dragging ? 0.8 : 1,
