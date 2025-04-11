@@ -49,9 +49,17 @@ floorplan/
 │   ├── components/         # Reusable React components
 │   │   ├── ControlPanel.tsx  # UI for device selection and configuration
 │   │   ├── DeviceComponent.tsx # Individual device renderer
+│   │   ├── DeviceDetailsPanel.tsx # Panel to show details of selected device
 │   │   ├── FloorPlan.tsx   # Main floorplan visualization component
+│   │   ├── GroupedDeviceComponent.tsx # Renderer for grouped devices
+│   │   ├── NotesEditor.tsx # Component for adding text notes
 │   │   ├── RoomHandles.tsx # Resize/drag handles for rooms
 │   │   └── RoomPanel.tsx   # UI for room management
+│   ├── contexts/           # React Context providers
+│   │   └── FloorplanContext.tsx # Context for managing floorplan state
+│   ├── hooks/              # Custom React hooks
+│   │   ├── useGrid.ts      # Hook for grid logic
+│   │   └── useWalls.ts     # Hook for wall management logic
 │   ├── lib/                # Utility functions and business logic
 │   │   └── floorplan-utils.ts   # Floorplan-related utilities
 │   ├── types.ts            # TypeScript type definitions
@@ -67,19 +75,26 @@ floorplan/
 
 ### Key Components
 
-1. **FloorPlan**: The core component responsible for rendering the floorplan layout, including rooms, walls, and devices.
+1.  **FloorPlan**: The core component responsible for rendering the floorplan layout, including rooms, walls, and devices.
+2.  **DeviceComponent**: Renders individual devices on the floorplan with appropriate icons and interactive behaviors.
+3.  **GroupedDeviceComponent**: Renders devices that are grouped together.
+4.  **ControlPanel**: Provides the user interface for selecting device types, mount positions, and managing devices.
+5.  **DeviceDetailsPanel**: Displays detailed information about the currently selected device.
+6.  **RoomPanel**: Enables room management functionality, including creation, editing, and deletion of rooms.
+7.  **RoomHandles**: Provides interactive handles for room resizing and repositioning.
+8.  **NotesEditor**: Allows users to add text annotations to the floorplan.
 
-2. **DeviceComponent**: Renders individual devices on the floorplan with appropriate icons and interactive behaviors.
+### Custom Hooks
 
-3. **ControlPanel**: Provides the user interface for selecting device types, mount positions, and managing devices.
+1.  **useGrid**: Encapsulates logic related to the grid system, snapping, and coordinate calculations.
+2.  **useWalls**: Manages the state and logic for drawing and interacting with walls on the floorplan.
 
-4. **RoomPanel**: Enables room management functionality, including creation, editing, and deletion of rooms.
+### Floorplan Utilities
 
-5. **RoomHandles**: Provides interactive handles for room resizing and repositioning.
+Located in `src/lib/floorplan-utils.ts`, contains helper functions for:
 
-6. **Floorplan Utilities**: Located in `src/lib/floorplan-utils.ts`, contains helper functions for:
-   - Element ID generation
-   - Distance calculations between points
+- Element ID generation
+- Distance calculations between points
 
 ### Data Structures
 
