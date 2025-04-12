@@ -101,12 +101,15 @@ export const FloorplanProvider: React.FC<FloorplanProviderProps> = ({ children }
   };
 
   const updateDeviceNotes = useCallback((id: string, notes: string) => {
-    setDevices(currentDevices => 
-      currentDevices.map(device => 
+    setDevices(currentDevices => {
+      const newDevices = currentDevices.map(device =>
         device.id === id ? { ...device, notes } : device
-      )
-    );
-  }, [selectedDevice]);
+      );
+      const updatedDevice = newDevices.find(device => device.id === id);
+      setSelectedDevice(prev => (prev && prev.id === id ? updatedDevice || null : prev));
+      return newDevices;
+    });
+  }, []);
 
   const deleteDevice = (id: string) => {
     setDevices(devices.filter(device => device.id !== id));
@@ -194,12 +197,15 @@ export const FloorplanProvider: React.FC<FloorplanProviderProps> = ({ children }
   }, [deviceGroups, selectedDevice]);
 
   const updateGroupNotes = useCallback((id: string, notes: string) => {
-    setDeviceGroups(currentGroups => 
-      currentGroups.map(group => 
+    setDeviceGroups(currentGroups => {
+      const newGroups = currentGroups.map(group => 
         group.id === id ? { ...group, notes } : group
-      )
-    );
-  }, [deviceGroups, selectedDevice]);
+      );
+      const updatedGroup = newGroups.find(group => group.id === id);
+      setSelectedGroup(prev => (prev && prev.id === id ? updatedGroup || null : prev));
+      return newGroups;
+    });
+  }, []);
 
   const addDeviceToGroup = (deviceId: string, groupId: string) => {
     // Find the device and group
