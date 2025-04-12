@@ -152,6 +152,21 @@ const GroupedDeviceComponent: React.FC<GroupedDeviceComponentProps> = ({
     }
   }, [group.x, group.y, dragging]);
 
+  const renderNotesIndicator = () => {
+    if (!group.notes) return null;
+    
+    return (
+      <g transform="translate(10, 10)">
+        <circle cx="0" cy="0" r="7" fill="#fffde7" stroke="#666" strokeWidth="1" />
+        <foreignObject x="-5" y="-5" width="10" height="10">
+          <div className="flex items-center justify-center w-full h-full">
+            <MdOutlineNotes size={8} color="#555" />
+          </div>
+        </foreignObject>
+      </g>
+    );
+  };
+
   return (
     <svg
       ref={ref => { svgRef.current = ref; }}
@@ -200,14 +215,8 @@ const GroupedDeviceComponent: React.FC<GroupedDeviceComponentProps> = ({
         {getMountPositionLabel(group.position)}
       </text>
       
-      {/* Notes indicator if group has notes */}
-      {group.notes && (
-        <foreignObject x="5" y="5" width="16" height="16">
-          <div className="flex items-center justify-center w-full h-full">
-            <MdOutlineNotes size={14} color="#555" />
-          </div>
-        </foreignObject>
-      )}
+      {/* Notes indicator if group has notes - updated to match DeviceComponent style */}
+      {renderNotesIndicator()}
     </svg>
   );
 };
