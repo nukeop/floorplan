@@ -16,6 +16,7 @@ function FloorplanWithDetails() {
     updateGroupNotes,
     removeDeviceFromGroup,
     updateDeviceMountPosition,
+    updateGroupMountPosition,
     rotateDevice
   } = useFloorplan();
 
@@ -33,6 +34,7 @@ function FloorplanWithDetails() {
           onClose={closeDetailsPanel}
           onRemoveDeviceFromGroup={removeDeviceFromGroup}
           onChangeMountPosition={updateDeviceMountPosition}
+          onChangeGroupMountPosition={updateGroupMountPosition}
           onRotateDevice={rotateDevice}
         />
       )}

@@ -10,6 +10,7 @@ interface DeviceDetailsPanelProps {
   onClose: () => void;
   onRemoveDeviceFromGroup: (deviceId: string, groupId: string) => void;
   onChangeMountPosition: (id: string, position: MountPosition) => void;
+  onChangeGroupMountPosition: (id: string, position: MountPosition) => void;
   onRotateDevice: (id: string) => void;
 }
 
@@ -21,6 +22,7 @@ const DeviceDetailsPanel: React.FC<DeviceDetailsPanelProps> = ({
   onClose,
   onRemoveDeviceFromGroup,
   onChangeMountPosition,
+  onChangeGroupMountPosition,
   onRotateDevice
 }) => {
   const getPanelTitle = () => {
@@ -38,6 +40,20 @@ const DeviceDetailsPanel: React.FC<DeviceDetailsPanelProps> = ({
     
     return (
       <div className="space-y-4">
+        <div>
+          <h3 className="text-sm font-medium text-gray-700">Mount Position:</h3>
+          <select
+            value={group.position}
+            onChange={(e) => onChangeGroupMountPosition(group.id, e.target.value as MountPosition)}
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+          >
+            <option value={MountPosition.WALL_LOW}>Wall (Low)</option>
+            <option value={MountPosition.WALL_MEDIUM}>Wall (Medium)</option>
+            <option value={MountPosition.WALL_HIGH}>Wall (High)</option>
+            <option value={MountPosition.CEILING}>Ceiling</option>
+          </select>
+        </div>
+
         <div>
           <h3 className="text-sm font-medium text-gray-700">Devices in this group:</h3>
           <ul className="mt-2 space-y-1">

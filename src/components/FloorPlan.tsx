@@ -812,8 +812,8 @@ const FloorPlan: React.FC = () => {
         const targetDevice = devices.find(
           d => d.id !== draggingDeviceId &&
             !d.groupId &&
-            Math.abs(d.x - deviceToCheck.x) < 5 &&
-            Math.abs(d.y - deviceToCheck.y) < 5
+            Math.abs(d.x - deviceToCheck.x) <= 20 &&
+            Math.abs(d.y - deviceToCheck.y) <= 20
         );
 
         if (targetDevice) {

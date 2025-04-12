@@ -28,6 +28,7 @@ interface FloorplanContextType {
   // Group operations
   createDeviceGroup: (deviceIds: string[]) => void;
   updateGroupPosition: (id: string, x: number, y: number) => void;
+  updateGroupMountPosition: (id: string, position: MountPosition) => void;
   updateGroupNotes: (id: string, notes: string) => void;
   addDeviceToGroup: (deviceId: string, groupId: string) => void;
   removeDeviceFromGroup: (deviceId: string, groupId: string) => void;
@@ -159,6 +160,8 @@ export const FloorplanProvider: React.FC<FloorplanProviderProps> = ({ children }
     const firstDevice = devicesToGroup[0];
     const groupPosition = { x: firstDevice.x, y: firstDevice.y };
 
+    const commonPosition = firstDevice.position;
+
     // Create new group
     const newGroup: DeviceGroup = {
       id: `group-${Date.now()}`,
@@ -166,6 +169,7 @@ export const FloorplanProvider: React.FC<FloorplanProviderProps> = ({ children }
       y: groupPosition.y,
       devices: [],
       notes: '',
+      position: commonPosition,
     };
 
     // Update devices to be part of this group
@@ -195,6 +199,26 @@ export const FloorplanProvider: React.FC<FloorplanProviderProps> = ({ children }
       )
     );
   }, [deviceGroups, selectedDevice]);
+
+  const updateGroupMountPosition = useCallback((id: string, position: MountPosition) => {
+    setDeviceGroups(currentGroups => {
+      const newGroups = currentGroups.map(group => 
+        group.id === id ? { ...group, position } : group
+      );
+      
+      const updatedGroup = newGroups.find(group => group.id === id);
+      setSelectedGroup(prev => (prev && prev.id === id ? updatedGroup || null : prev));
+      
+      return newGroups;
+    });
+    
+    // Also update all devices in this group to have the same position
+    setDevices(currentDevices => {
+      return currentDevices.map(device => 
+        device.groupId === id ? { ...device, position } : device
+      );
+    });
+  }, []);
 
   const updateGroupNotes = useCallback((id: string, notes: string) => {
     setDeviceGroups(currentGroups => {
@@ -512,6 +536,7 @@ export const FloorplanProvider: React.FC<FloorplanProviderProps> = ({ children }
     // Group operations
     createDeviceGroup,
     updateGroupPosition,
+    updateGroupMountPosition,
     updateGroupNotes,
     addDeviceToGroup,
     removeDeviceFromGroup,

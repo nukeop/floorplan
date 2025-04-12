@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { DeviceGroup } from '@/types';
+import { DeviceGroup, MountPosition } from '@/types';
 import { IoLayersOutline } from 'react-icons/io5';
 import { MdOutlineNotes } from 'react-icons/md';
 
@@ -10,6 +10,22 @@ interface GroupedDeviceComponentProps {
   onDragStart: (e: React.MouseEvent) => void;
   onDragEnd: (id: string, x: number, y: number) => void;
 }
+
+// Function to get border color based on mounting position
+const getMountPositionColor = (position: MountPosition): string => {
+  switch (position) {
+    case MountPosition.WALL_LOW:
+      return "#8B4513"; // Brown for low wall position
+    case MountPosition.WALL_MEDIUM:
+      return "#FF8C00"; // Dark orange for medium wall position
+    case MountPosition.WALL_HIGH:
+      return "#4682B4"; // Steel blue for high wall position
+    case MountPosition.CEILING:
+      return "#800080"; // Purple for ceiling position
+    default:
+      return "#666"; // Default gray
+  }
+};
 
 const GroupedDeviceComponent: React.FC<GroupedDeviceComponentProps> = ({
   group,
@@ -30,8 +46,26 @@ const GroupedDeviceComponent: React.FC<GroupedDeviceComponentProps> = ({
   
   const gridSize = 10;
   
+  const mountPositionColor = getMountPositionColor(group.position);
+  
   const snapToGrid = (value: number): number => {
     return Math.round(value / gridSize) * gridSize;
+  };
+
+  // Helper function to get mount position label for display
+  const getMountPositionLabel = (position: MountPosition): string => {
+    switch (position) {
+      case MountPosition.WALL_LOW:
+        return "L";
+      case MountPosition.WALL_MEDIUM:
+        return "M";
+      case MountPosition.WALL_HIGH:
+        return "H";
+      case MountPosition.CEILING:
+        return "C";
+      default:
+        return "";
+    }
   };
 
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -141,8 +175,8 @@ const GroupedDeviceComponent: React.FC<GroupedDeviceComponentProps> = ({
         width="32" 
         height="32" 
         fill="white" 
-        stroke={selected ? "#2196f3" : "#666"}
-        strokeWidth={selected ? 2 : 1}
+        stroke={selected ? "#2196f3" : mountPositionColor}
+        strokeWidth={selected ? 2 : 2.5}
         rx="4"
         ry="4"
       />
@@ -158,6 +192,12 @@ const GroupedDeviceComponent: React.FC<GroupedDeviceComponentProps> = ({
       <circle cx="12" cy="-12" r="8" fill="#2196f3" />
       <text x="12" y="-9" textAnchor="middle" fill="white" fontSize="10">
         {group.devices.length}
+      </text>
+      
+      {/* Mount position indicator */}
+      <circle cx="-12" cy="-12" r="8" fill={mountPositionColor} />
+      <text x="-12" y="-9" textAnchor="middle" fill="white" fontSize="10">
+        {getMountPositionLabel(group.position)}
       </text>
       
       {/* Notes indicator if group has notes */}

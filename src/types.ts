@@ -38,6 +38,7 @@ export interface DeviceGroup {
     y: number;
     devices: Device[];
     notes: string;
+    position: MountPosition;
     expanded?: boolean; // Whether the group is currently expanded in the UI
 }
 
