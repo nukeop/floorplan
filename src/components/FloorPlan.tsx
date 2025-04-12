@@ -1,12 +1,309 @@
-import React, { useRef, useState, useEffect } from 'react';
-import { Device, Room, DeviceGroup } from '@/types';
+import React, { useRef, useState, useEffect, useMemo } from 'react';
+import { Device, Room, DeviceGroup, DeviceType, MountPosition } from '@/types';
 import DeviceComponent from './DeviceComponent';
 import GroupedDeviceComponent from './GroupedDeviceComponent';
 import RoomHandles from './RoomHandles';
 import { useFloorplan } from '@/contexts/FloorplanContext';
 import { useGrid } from '@/hooks/useGrid';
 import { useWalls } from '@/hooks/useWalls';
-import { FaCrosshairs } from 'react-icons/fa';
+import { 
+  FaCrosshairs, 
+  FaRuler, 
+  FaSearchPlus, 
+  FaSearchMinus, 
+  FaExpand, 
+  FaLayerGroup,
+  FaPlug,
+  FaLightbulb,
+  FaThermometerHalf,
+  FaWifi
+} from 'react-icons/fa';
+import { 
+  MdOutlineGridOn, 
+  MdVisibility, 
+  MdInfo, 
+  MdHome, 
+  MdSquareFoot 
+} from 'react-icons/md';
+
+const FloorplanControlPanel: React.FC<{
+  rooms: Room[];
+  devices: Device[];
+  deviceGroups: DeviceGroup[];
+  gridSize: number;
+  viewBoxValues: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
+  onCenterView: () => void;
+  onZoomIn: () => void;
+  onZoomOut: () => void;
+  onZoomChange: (scale: number) => void;
+  selectedRoom: Room | null;
+  selectedDevice: Device | null;
+  selectedGroup: DeviceGroup | null;
+}> = ({
+  rooms,
+  devices,
+  deviceGroups,
+  gridSize,
+  viewBoxValues,
+  onCenterView,
+  onZoomIn,
+  onZoomOut,
+  onZoomChange,
+  selectedRoom,
+  selectedDevice,
+  selectedGroup
+}) => {
+  const [expanded, setExpanded] = useState(true);
+  
+  const totalArea = useMemo(() => {
+    // Convert from grid units to square meters (grid size is in cm)
+    return rooms.reduce((total, room) => {
+      const areaInSquareCm = room.width * room.height;
+      const areaInSquareMeters = areaInSquareCm / 10000; // 10000 sq cm = 1 sq m
+      return total + areaInSquareMeters;
+    }, 0);
+  }, [rooms]);
+  
+  const deviceCountsByType = useMemo(() => {
+    const counts: Record<DeviceType, number> = {} as Record<DeviceType, number>;
+    
+    Object.values(DeviceType).forEach(type => {
+      counts[type] = 0;
+    });
+    
+    devices.forEach(device => {
+      counts[device.type]++;
+    });
+    
+    return counts;
+  }, [devices]);
+  
+  // Calculate total electrical and IoT devices
+  const totalElectricalDevices = useMemo(() => {
+    return devices.filter(d => 
+      d.type === DeviceType.SOCKET || 
+      d.type === DeviceType.SWITCH || 
+      d.type === DeviceType.SMART_SOCKET || 
+      d.type === DeviceType.SMART_SWITCH
+    ).length;
+  }, [devices]);
+  
+  const totalLightingDevices = useMemo(() => {
+    return devices.filter(d => 
+      d.type === DeviceType.LIGHT || 
+      d.type === DeviceType.CEILING_LIGHT
+    ).length;
+  }, [devices]);
+  
+  const totalSensorDevices = useMemo(() => {
+    return devices.filter(d => 
+      d.type === DeviceType.MOTION_SENSOR || 
+      d.type === DeviceType.TEMPERATURE_SENSOR || 
+      d.type === DeviceType.CEILING_SENSOR
+    ).length;
+  }, [devices]);
+  
+  // Get currently selected item info
+  const getSelectionInfo = () => {
+    if (selectedRoom) {
+      // Calculate area in square meters for the selected room
+      const areaInSquareCm = selectedRoom.width * selectedRoom.height;
+      const areaInSquareMeters = areaInSquareCm / 10000; // 10000 sq cm = 1 sq m
+      
+      return {
+        type: 'Room',
+        name: selectedRoom.name,
+        area: `${areaInSquareMeters.toFixed(2)} m²`
+      };
+    }
+    
+    if (selectedDevice) {
+      return {
+        type: 'Device',
+        name: selectedDevice.type,
+        position: selectedDevice.position
+      };
+    }
+    
+    if (selectedGroup) {
+      return {
+        type: 'Group',
+        name: `Group of ${selectedGroup.devices.length} devices`,
+        description: selectedGroup.notes || 'No description'
+      };
+    }
+    
+    return null;
+  };
+  
+  const selectedInfo = getSelectionInfo();
+  
+  // Current view scale (relative to initial size)
+  const viewScale = Math.round((1000 / viewBoxValues.width) * 100);
+  
+  // Handle zoom slider change
+  const handleZoomSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newScale = parseInt(e.target.value, 10);
+    onZoomChange(newScale);
+  };
+  
+  return (
+    <div 
+      className={`absolute top-4 right-4 bg-white border border-gray-200 rounded-lg shadow-lg transition-all duration-300 ${expanded ? 'w-72' : 'w-12'}`}
+    >
+      {/* Header with expand button */}
+      <div className="flex justify-center items-center p-2 border-b border-gray-200">
+        {expanded ? (
+          <h3 className="font-semibold text-gray-800 flex-grow">Floorplan Controls</h3>
+        ) : null}
+        <button 
+          onClick={() => setExpanded(!expanded)}
+          className={`text-gray-500 hover:text-blue-500 focus:outline-none ${expanded ? '' : 'mx-auto'}`}
+          title={expanded ? "Collapse panel" : "Expand panel"}
+        >
+          <FaExpand className="w-4 h-4" />
+        </button>
+      </div>
+      
+      <div className={`${expanded ? 'p-3' : 'p-0'}`}>
+        {/* View Controls with slider */}
+        <div className={`${expanded ? 'mb-4' : ''}`}>
+          <div className={`flex justify-center ${expanded ? 'mb-2' : 'py-2'}`}>
+            <button
+              onClick={onCenterView}
+              className="p-2 bg-blue-500 text-white rounded shadow hover:bg-blue-600 focus:outline-none flex items-center justify-center"
+              title="Center View"
+            >
+              <FaCrosshairs className="w-5 h-5" />
+            </button>
+          </div>
+          
+          {expanded && (
+            <div className="flex items-center space-x-2 mt-2">
+              <button
+                onClick={onZoomOut}
+                className="p-2 bg-blue-500 text-white rounded shadow hover:bg-blue-600 focus:outline-none flex items-center justify-center"
+                title="Zoom Out"
+              >
+                <FaSearchMinus className="w-4 h-4" />
+              </button>
+              
+              <input
+                type="range"
+                min="50"
+                max="200"
+                value={viewScale}
+                onChange={handleZoomSliderChange}
+                className="flex-grow h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+              />
+              
+              <button
+                onClick={onZoomIn}
+                className="p-2 bg-blue-500 text-white rounded shadow hover:bg-blue-600 focus:outline-none flex items-center justify-center"
+                title="Zoom In"
+              >
+                <FaSearchPlus className="w-4 h-4" />
+              </button>
+              
+              <span className="text-xs text-gray-500 w-12 text-right">{viewScale}%</span>
+            </div>
+          )}
+        </div>
+        
+        {expanded && (
+          <>
+            {/* Statistics */}
+            <div className="bg-gray-50 p-3 rounded-lg mb-4">
+              <h4 className="font-medium text-gray-700 mb-2 flex items-center">
+                <MdInfo className="mr-1" /> Floorplan Statistics
+              </h4>
+              
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div className="flex items-center">
+                  <MdHome className="text-blue-500 mr-1" /> Rooms:
+                </div>
+                <div className="text-right font-medium">{rooms.length}</div>
+                
+                <div className="flex items-center">
+                  <MdSquareFoot className="text-blue-500 mr-1" /> Area:
+                </div>
+                <div className="text-right font-medium">{totalArea.toFixed(2)} m²</div>
+                
+                <div className="flex items-center">
+                  <FaLayerGroup className="text-blue-500 mr-1" /> Groups:
+                </div>
+                <div className="text-right font-medium">{deviceGroups.length}</div>
+                
+                <div className="flex items-center">
+                  <FaRuler className="text-blue-500 mr-1" /> Grid Size:
+                </div>
+                <div className="text-right font-medium">{gridSize} cm</div>
+              </div>
+            </div>
+            
+            {/* Device Counts */}
+            <div className="bg-gray-50 p-3 rounded-lg mb-4">
+              <h4 className="font-medium text-gray-700 mb-2 flex items-center">
+                <MdOutlineGridOn className="mr-1" /> Device Inventory
+              </h4>
+              
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div className="flex items-center">
+                  <FaPlug className="text-blue-500 mr-1" /> Electrical:
+                </div>
+                <div className="text-right font-medium">{totalElectricalDevices}</div>
+                
+                <div className="flex items-center">
+                  <FaLightbulb className="text-blue-500 mr-1" /> Lighting:
+                </div>
+                <div className="text-right font-medium">{totalLightingDevices}</div>
+                
+                <div className="flex items-center">
+                  <FaWifi className="text-blue-500 mr-1" /> Sensors:
+                </div>
+                <div className="text-right font-medium">{totalSensorDevices}</div>
+                
+                <div className="flex items-center">
+                  <FaThermometerHalf className="text-blue-500 mr-1" /> Thermostats:
+                </div>
+                <div className="text-right font-medium">{deviceCountsByType[DeviceType.THERMOSTAT]}</div>
+                
+                <div className="flex items-center col-span-2 pt-1 border-t border-gray-200 mt-1">
+                  <strong>Total Devices:</strong> <span className="ml-auto font-medium">{devices.length}</span>
+                </div>
+              </div>
+            </div>
+            
+            {/* Selection Info */}
+            {selectedInfo && (
+              <div className="bg-blue-50 p-3 rounded-lg">
+                <h4 className="font-medium text-blue-700 mb-2">Selected {selectedInfo.type}</h4>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  {Object.entries(selectedInfo).map(([key, value]) => {
+                    if (key === 'type') return null;
+                    return (
+                      <React.Fragment key={key}>
+                        <div className="capitalize">{key}:</div>
+                        <div className="text-right font-medium">
+                          {value.toString()}
+                        </div>
+                      </React.Fragment>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
 
 const FloorPlan: React.FC = () => {
   const {
@@ -54,6 +351,101 @@ const FloorPlan: React.FC = () => {
     width: 950,
     height: 950
   });
+
+  // Zoom functionality
+  const zoomIn = () => {
+    // Zoom in by reducing the viewBox dimensions by 10%
+    const newWidth = viewBoxValues.width * 0.9;
+    const newHeight = viewBoxValues.height * 0.9;
+    
+    // Calculate the new origin to keep the center point the same
+    const centerX = viewBoxValues.x + viewBoxValues.width / 2;
+    const centerY = viewBoxValues.y + viewBoxValues.height / 2;
+    
+    const newX = centerX - newWidth / 2;
+    const newY = centerY - newHeight / 2;
+    
+    setViewBoxValues({ x: newX, y: newY, width: newWidth, height: newHeight });
+    setViewBox(`${newX} ${newY} ${newWidth} ${newHeight}`);
+    setUserPanned(true); // Mark as user-modified view
+  };
+
+  const zoomOut = () => {
+    // Zoom out by increasing the viewBox dimensions by 10%
+    const newWidth = viewBoxValues.width * 1.1;
+    const newHeight = viewBoxValues.height * 1.1;
+    
+    // Calculate the new origin to keep the center point the same
+    const centerX = viewBoxValues.x + viewBoxValues.width / 2;
+    const centerY = viewBoxValues.y + viewBoxValues.height / 2;
+    
+    const newX = centerX - newWidth / 2;
+    const newY = centerY - newHeight / 2;
+    
+    setViewBoxValues({ x: newX, y: newY, width: newWidth, height: newHeight });
+    setViewBox(`${newX} ${newY} ${newWidth} ${newHeight}`);
+    setUserPanned(true); // Mark as user-modified view
+  };
+
+  const zoomChange = (scale: number) => {
+    const newWidth = 1000 / (scale / 100);
+    const newHeight = 1000 / (scale / 100);
+
+    const centerX = viewBoxValues.x + viewBoxValues.width / 2;
+    const centerY = viewBoxValues.y + viewBoxValues.height / 2;
+
+    const newX = centerX - newWidth / 2;
+    const newY = centerY - newHeight / 2;
+
+    setViewBoxValues({ x: newX, y: newY, width: newWidth, height: newHeight });
+    setViewBox(`${newX} ${newY} ${newWidth} ${newHeight}`);
+    setUserPanned(true);
+  };
+
+  const handleZoomChange = (scale: number) => {
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+
+    if (rooms.length === 0 && devices.length === 0) {
+      minX = 0;
+      minY = 0;
+      maxX = 950 + margin;
+      maxY = 950 + margin;
+    } else {
+      rooms.forEach(room => {
+        minX = Math.min(minX, room.x);
+        minY = Math.min(minY, room.y);
+        maxX = Math.max(maxX, room.x + room.width);
+        maxY = Math.max(maxY, room.y + room.height);
+      });
+      devices.forEach(device => {
+        minX = Math.min(minX, device.x);
+        minY = Math.min(minY, device.y);
+        maxX = Math.max(maxX, device.x);
+        maxY = Math.max(maxY, device.y);
+      });
+    }
+
+    minX = minX - margin;
+    minY = minY - margin;
+    maxX += margin;
+    maxY += margin;
+
+    const baseWidth = maxX - minX;
+    const baseHeight = maxY - minY;
+
+    const newWidth = baseWidth * (100 / scale);
+    const newHeight = baseHeight * (100 / scale);
+
+    const centerX = viewBoxValues.x + viewBoxValues.width / 2;
+    const centerY = viewBoxValues.y + viewBoxValues.height / 2;
+
+    const newX = centerX - newWidth / 2;
+    const newY = centerY - newHeight / 2;
+
+    setViewBoxValues({ x: newX, y: newY, width: newWidth, height: newHeight });
+    setViewBox(`${newX} ${newY} ${newWidth} ${newHeight}`);
+    setUserPanned(true);
+  };
 
   useEffect(() => {
     const calculateBoundingBox = () => {
@@ -695,13 +1087,21 @@ const FloorPlan: React.FC = () => {
             ))}
           </svg>
 
-          {/* Center button added in the corner */}
-          <button
-            onClick={centerView}
-            className="absolute top-4 right-4 p-2 bg-blue-500 text-white rounded shadow hover:bg-blue-600 focus:outline-none"
-          >
-            <FaCrosshairs className="w-6 h-6" />
-          </button>
+          {/* Replace the simple center button with the FloorplanControlPanel */}
+          <FloorplanControlPanel
+            rooms={rooms}
+            devices={devices}
+            deviceGroups={deviceGroups}
+            gridSize={gridSize}
+            viewBoxValues={viewBoxValues}
+            onCenterView={centerView}
+            onZoomIn={zoomIn}
+            onZoomOut={zoomOut}
+            onZoomChange={handleZoomChange}
+            selectedRoom={selectedRoom}
+            selectedDevice={selectedDevice}
+            selectedGroup={selectedGroup}
+          />
         </div>
       )}
     </div>
