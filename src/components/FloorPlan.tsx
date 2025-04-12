@@ -6,6 +6,7 @@ import RoomHandles from './RoomHandles';
 import { useFloorplan } from '@/contexts/FloorplanContext';
 import { useGrid } from '@/hooks/useGrid';
 import { useWalls } from '@/hooks/useWalls';
+import { FaCrosshairs } from 'react-icons/fa';
 
 const FloorPlan: React.FC = () => {
   const {
@@ -42,6 +43,7 @@ const FloorPlan: React.FC = () => {
 
   // Pan state
   const [isPanning, setIsPanning] = useState(false);
+  const [userPanned, setUserPanned] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
   const [viewBoxValues, setViewBoxValues] = useState({ x: 0, y: 0, width: 950 + margin * 2, height: 950 + margin * 2 });
   const [viewBox, setViewBox] = useState<string>(`${viewBoxValues.x} ${viewBoxValues.y} ${viewBoxValues.width} ${viewBoxValues.height}`);
@@ -99,29 +101,18 @@ const FloorPlan: React.FC = () => {
       const viewBoxWidth = maxX - minX;
       const viewBoxHeight = maxY - minY;
 
-      if (!isPanning) {
-        setViewBoxValues(prev => ({
-          ...prev,
-          // Don't update x,y during panning - only when content changes
-          x: minX,
-          y: minY,
-          width: viewBoxWidth,
-          height: viewBoxHeight
-        }));
+      if (!userPanned) {
+        setViewBoxValues({ x: minX, y: minY, width: viewBoxWidth, height: viewBoxHeight });
         setViewBox(`${minX} ${minY} ${viewBoxWidth} ${viewBoxHeight}`);
       } else {
-        // During panning, only update dimensions but keep the current origin
-        setViewBoxValues(prev => ({
-          ...prev,
-          width: viewBoxWidth,
-          height: viewBoxHeight
-        }));
+        // Preserve current origin if user has panned
+        setViewBoxValues(prev => ({ ...prev, width: viewBoxWidth, height: viewBoxHeight }));
         setViewBox(`${viewBoxValues.x} ${viewBoxValues.y} ${viewBoxWidth} ${viewBoxHeight}`);
       }
     };
 
     calculateBoundingBox();
-  }, [rooms, devices, margin, isPanning, viewBoxValues.x, viewBoxValues.y]);
+  }, [rooms, devices, margin, userPanned]);
 
   // Room dragging state
   const [isDraggingRoom, setIsDraggingRoom] = useState(false);
@@ -189,6 +180,7 @@ const FloorPlan: React.FC = () => {
 
     if (isBackgroundClick) {
       setIsPanning(true);
+      setUserPanned(true); // mark that user has panned
       setPanStart({ x: e.clientX, y: e.clientY });
       e.preventDefault();
     }
@@ -230,6 +222,43 @@ const FloorPlan: React.FC = () => {
   const handlePanEnd = () => {
     if (!isPanning) return;
     setIsPanning(false);
+  };
+
+  const centerView = () => {
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+
+    if (rooms.length === 0 && devices.length === 0) {
+      minX = 0;
+      minY = 0;
+      maxX = 950 + margin;
+      maxY = 950 + margin;
+    } else {
+      rooms.forEach(room => {
+        minX = Math.min(minX, room.x);
+        minY = Math.min(minY, room.y);
+        maxX = Math.max(maxX, room.x + room.width);
+        maxY = Math.max(maxY, room.y + room.height);
+      });
+      devices.forEach(device => {
+        minX = Math.min(minX, device.x);
+        minY = Math.min(minY, device.y);
+        maxX = Math.max(maxX, device.x);
+        maxY = Math.max(maxY, device.y);
+      });
+    }
+
+    minX = minX - margin;
+    minY = minY - margin;
+    maxX += margin;
+    maxY += margin;
+
+    const viewBoxWidth = maxX - minX;
+    const viewBoxHeight = maxY - minY;
+
+    setFrameDimensions({ x: minX, y: minY, width: viewBoxWidth, height: viewBoxHeight });
+    setViewBoxValues({ x: minX, y: minY, width: viewBoxWidth, height: viewBoxHeight });
+    setViewBox(`${minX} ${minY} ${viewBoxWidth} ${viewBoxHeight}`);
+    setUserPanned(false);
   };
 
   const handleRoomClick = (e: React.MouseEvent, room: Room) => {
@@ -665,6 +694,14 @@ const FloorPlan: React.FC = () => {
               />
             ))}
           </svg>
+
+          {/* Center button added in the corner */}
+          <button
+            onClick={centerView}
+            className="absolute top-4 right-4 p-2 bg-blue-500 text-white rounded shadow hover:bg-blue-600 focus:outline-none"
+          >
+            <FaCrosshairs className="w-6 h-6" />
+          </button>
         </div>
       )}
     </div>

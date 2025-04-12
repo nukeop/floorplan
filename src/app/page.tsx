@@ -43,11 +43,7 @@ function FloorplanWithDetails() {
 export default function SmartHomePlanner() {
   return (
     <FloorplanProvider>
-      <div className="flex flex-col h-screen">
-        <header className="bg-slate-800 text-white p-4 text-center">
-          <h1 className="text-2xl font-bold">Smart Home Planner</h1>
-        </header>
-        
+      <div className="flex flex-col h-screen">        
         <FloorplanWithDetails />
       </div>
     </FloorplanProvider>
