@@ -1,6 +1,5 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Device, MountPosition } from '@/types';
-import { MdOutlineNotes } from 'react-icons/md';
+import React from 'react';
+import { Device } from '@/types';
 import { 
   BsOutlet, 
   BsLightbulb,
@@ -12,6 +11,12 @@ import {
 import { IoThermometerOutline } from 'react-icons/io5';
 import { GiSmartphone } from 'react-icons/gi';
 import { RiSensorLine } from 'react-icons/ri';
+import { MdOutlineNotes } from 'react-icons/md';
+import { 
+  DraggableElement, 
+  NotesIndicator, 
+  MountPositionIndicator 
+} from './shared/FloorplanElements';
 
 interface DeviceComponentProps {
   device: Device;
@@ -28,37 +33,6 @@ const DeviceComponent: React.FC<DeviceComponentProps> = ({
   onDragStart,
   onDragEnd,
 }) => {
-  const [dragging, setDragging] = useState(false);
-  const [position, setPosition] = useState({ x: device.x, y: device.y });
-  
-  const svgRef = useRef<SVGSVGElement | null>(null);
-  const positionRef = useRef({ x: device.x, y: device.y });
-  const startPosRef = useRef({ x: 0, y: 0 });
-  const initialDevicePosRef = useRef({ x: 0, y: 0 });
-  
-  const ctmInverseRef = useRef<DOMMatrix | null>(null);
-  
-  const gridSize = 10;
-  
-  const snapToGrid = (value: number): number => {
-    return Math.round(value / gridSize) * gridSize;
-  };
-
-  const getMountPositionColor = () => {
-    switch (device.position) {
-      case MountPosition.WALL_LOW:
-        return "#4299e1";
-      case MountPosition.WALL_MEDIUM:
-        return "#48bb78";
-      case MountPosition.WALL_HIGH:
-        return "#ed8936";
-      case MountPosition.CEILING:
-        return "#9f7aea";
-      default:
-        return "#fff";
-    }
-  };
-
   const getDeviceBorderColor = () => {
     switch (device.type) {
       case 'socket':
@@ -87,89 +61,6 @@ const DeviceComponent: React.FC<DeviceComponentProps> = ({
         return "#6b7280"; // Gray
     }
   };
-
-  const handleMouseDown = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    onClick(e);
-    onDragStart(e);
-    
-    startPosRef.current = {
-      x: e.clientX,
-      y: e.clientY,
-    };
-    initialDevicePosRef.current = {
-      x: device.x,
-      y: device.y
-    };
-    
-    if (svgRef.current) {
-      const screenCTM = svgRef.current.getScreenCTM();
-      if (screenCTM) {
-        ctmInverseRef.current = screenCTM.inverse();
-      }
-    }
-    
-    setDragging(true);
-  };
-
-  const handleMouseMove = useCallback((e: MouseEvent) => {
-    if (!dragging || !ctmInverseRef.current) return;
-    
-    const svgPoint = svgRef.current?.createSVGPoint();
-    const startSvgPoint = svgRef.current?.createSVGPoint();
-    
-    if (svgPoint && startSvgPoint) {
-      svgPoint.x = e.clientX;
-      svgPoint.y = e.clientY;
-      startSvgPoint.x = startPosRef.current.x;
-      startSvgPoint.y = startPosRef.current.y;
-      
-      const transformedPoint = svgPoint.matrixTransform(ctmInverseRef.current);
-      const transformedStartPoint = startSvgPoint.matrixTransform(ctmInverseRef.current);
-      
-      const dx = transformedPoint.x - transformedStartPoint.x;
-      const dy = transformedPoint.y - transformedStartPoint.y;
-      
-      const newX = snapToGrid(initialDevicePosRef.current.x + dx);
-      const newY = snapToGrid(initialDevicePosRef.current.y + dy);
-      positionRef.current = { x: newX, y: newY };
-      
-      requestAnimationFrame(() => {
-        setPosition(positionRef.current);
-      });
-    }
-  }, [dragging]);
-
-  const handleMouseUp = useCallback(() => {
-    if (dragging) {
-      setDragging(false);
-      onDragEnd(device.id, positionRef.current.x, positionRef.current.y);
-      ctmInverseRef.current = null;
-    }
-  }, [dragging, device.id, onDragEnd]);
-
-  useEffect(() => {
-    if (dragging) {
-      window.addEventListener('mousemove', handleMouseMove);
-      window.addEventListener('mouseup', handleMouseUp);
-    } else {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
-    }
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
-    };
-  }, [dragging, handleMouseMove, handleMouseUp]);
-
-  useEffect(() => {
-    if (!dragging) {
-      const snappedX = snapToGrid(device.x);
-      const snappedY = snapToGrid(device.y);
-      setPosition({ x: snappedX, y: snappedY });
-      positionRef.current = { x: snappedX, y: snappedY };
-    }
-  }, [device.x, device.y, dragging]);
 
   const renderDeviceIcon = () => {
     const getIconProps = () => {
@@ -241,56 +132,20 @@ const DeviceComponent: React.FC<DeviceComponentProps> = ({
     );
   };
 
-  const renderMountPositionIndicator = () => {
-    const color = getMountPositionColor();
-    
-    return (
-      <circle 
-        cx="0" 
-        cy="0" 
-        r="14" 
-        fill="none" 
-        stroke={color} 
-        strokeWidth="2" 
-        strokeDasharray={device.position === MountPosition.CEILING ? "2,2" : "none"}
-      />
-    );
-  };
-
-  const renderNotesIndicator = () => {
-    if (!device.notes) return null;
-    
-    return (
-      <g transform="translate(10, 10)">
-        <circle cx="0" cy="0" r="7" fill="#fffde7" stroke="#666" strokeWidth="1" />
-        <foreignObject x="-5" y="-5" width="10" height="10">
-          <div className="flex items-center justify-center w-full h-full">
-            <MdOutlineNotes size={8} color="#555" />
-          </div>
-        </foreignObject>
-      </g>
-    );
-  };
-
   return (
-    <svg
-      ref={ref => { svgRef.current = ref; }}
-      x={position.x}
-      y={position.y}
-      width="40" 
-      height="40"
-      viewBox="-20 -20 40 40"
-      style={{ 
-        cursor: dragging ? 'grabbing' : 'pointer',
-        opacity: dragging ? 0.8 : 1,
-        willChange: dragging ? 'transform' : 'auto' // Rendering optimization
-      }}
-      onMouseDown={handleMouseDown}
+    <DraggableElement
+      id={device.id}
+      x={device.x}
+      y={device.y}
+      selected={selected}
+      onClick={onClick}
+      onDragStart={onDragStart}
+      onDragEnd={onDragEnd}
     >
-      {renderMountPositionIndicator()}
+      <MountPositionIndicator position={device.position} />
       {renderDeviceIcon()}
-      {renderNotesIndicator()}
-    </svg>
+      <NotesIndicator notes={device.notes} />
+    </DraggableElement>
   );
 };
 

@@ -56,7 +56,9 @@ floorplan/
 │   │   ├── GroupedDeviceComponent.tsx # Renderer for grouped devices
 │   │   ├── NotesEditor.tsx # Component for adding text notes
 │   │   ├── RoomHandles.tsx # Resize/drag handles for rooms
-│   │   └── RoomPanel.tsx   # UI for room management
+│   │   ├── RoomPanel.tsx   # UI for room management
+│   │   └── shared/         # Shared components
+│   │       └── FloorplanElements.tsx # Reusable elements for devices and groups
 │   ├── contexts/           # React Context providers
 │   │   └── FloorplanContext.tsx # Context for managing floorplan state
 │   ├── hooks/              # Custom React hooks
@@ -85,11 +87,40 @@ floorplan/
 6.  **RoomPanel**: Enables room management functionality, including creation, editing, and deletion of rooms.
 7.  **RoomHandles**: Provides interactive handles for room resizing and repositioning.
 8.  **NotesEditor**: Allows users to add text annotations to the floorplan.
+9.  **FloorplanElements**: Contains shared components used by both DeviceComponent and GroupedDeviceComponent:
+    - **DraggableElement**: Reusable component that handles drag-and-drop functionality
+    - **NotesIndicator**: Consistent notes icon with background
+    - **MountPositionIndicator**: Handles consistent display of mount positions
+    - **SizeIndicator**: Shows count of devices in a group
 
 ### Custom Hooks
 
 1.  **useGrid**: Encapsulates logic related to the grid system, snapping, and coordinate calculations.
 2.  **useWalls**: Manages the state and logic for drawing and interacting with walls on the floorplan.
+
+### Shared Components Architecture
+
+The project implements a component composition pattern for rendering devices:
+
+```
+FloorPlan
+├── DeviceComponent
+│   └── DraggableElement  # Handles drag-and-drop behavior
+│       ├── MountPositionIndicator
+│       └── NotesIndicator
+└── GroupedDeviceComponent
+    └── DraggableElement  # Same behavior for both device types
+        ├── GroupMountPositionIndicator
+        ├── SizeIndicator
+        └── NotesIndicator
+```
+
+This architecture provides several benefits:
+
+- **Reduced code duplication**: Common drag-and-drop behavior defined once
+- **Consistent behavior**: Devices and groups behave identically when interacted with
+- **Improved maintenance**: Changes to interaction behavior only need to be made in one place
+- **Separation of concerns**: Visual representation is separated from interaction behavior
 
 ### Floorplan Utilities
 
