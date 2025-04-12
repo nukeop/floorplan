@@ -39,7 +39,9 @@ This tool bridges the gap between homeowners/clients and renovation professional
 ```
 floorplan/
 ├── .github/                # GitHub-related files and documentation
-│   └── copilot-instructions.md # Project overview and instructions
+│   ├── copilot-instructions.md # Project overview and instructions
+│   └── workflows/          # GitHub Actions workflows
+│       └── deploy.yml      # Deployment workflow to GitHub Pages
 ├── public/                 # Static assets
 │   └── .nojekyll           # Prevents GitHub Pages from using Jekyll processing
 ├── src/                    # Source code
@@ -115,13 +117,19 @@ The application provides the following features:
    - Rotation of devices
    - Changing mount positions
    - Deletion of devices
-4. **Room Management**:
+   - Grouping related devices together
+   - Adding notes to devices
+4. **Device Grouping**:
+   - Create logical groups of related devices
+   - Move groups as a single unit
+   - Add notes to device groups
+5. **Room Management**:
    - Create, edit, and delete rooms
    - Drag rooms to reposition
    - Resize rooms using interactive handles
    - Grid snapping for precise placement
    - Edit room properties (name, color, dimensions)
-5. **Configuration Management**:
+6. **Configuration Management**:
    - Export configuration as JSON
    - Import configuration from JSON
    - Auto-save to browser local storage
