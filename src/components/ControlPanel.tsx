@@ -15,6 +15,8 @@ const ControlPanel: React.FC = () => {
     updateDeviceMountPosition,
     exportConfiguration,
     importConfiguration,
+    isEditorMode,
+    isLoading
   } = useFloorplan();
 
   const deviceTypes = [
@@ -38,6 +40,30 @@ const ControlPanel: React.FC = () => {
     { position: MountPosition.WALL_HIGH, label: 'Wall (high ~120cm)', color: 'bg-orange-500' },
     { position: MountPosition.CEILING, label: 'Ceiling', color: 'bg-purple-500' },
   ];
+
+  if (!isEditorMode) {
+    return (
+      <div className="w-80 bg-white p-4 overflow-y-auto border-r border-gray-200 shadow-md">
+        <h2 className="text-xl font-bold mb-4">Floorplan Viewer</h2>
+        
+        {isLoading ? (
+          <div className="py-4 text-center">Loading...</div>
+        ) : (
+          <div className="mt-4">
+            <label className="w-full py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600 transition-colors text-center cursor-pointer block">
+              Import Floorplan
+              <input
+                type="file"
+                accept=".json"
+                onChange={importConfiguration}
+                className="hidden"
+              />
+            </label>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="w-80 bg-white p-4 overflow-y-auto border-r border-gray-200 shadow-md">
@@ -95,7 +121,7 @@ const ControlPanel: React.FC = () => {
           </div>
         )}
       </div>
-
+      
       {selectedDevice && (
         <div className="mb-6 p-4 bg-gray-50 rounded border border-gray-200">
           <h3 className="text-lg font-semibold mb-2">Edit element:</h3>
@@ -136,7 +162,7 @@ const ControlPanel: React.FC = () => {
           </div>
         </div>
       )}
-
+      
       <RoomPanel />
       
       <div className="mt-4">

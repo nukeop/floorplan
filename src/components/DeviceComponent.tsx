@@ -24,6 +24,7 @@ interface DeviceComponentProps {
   onClick: (e: React.MouseEvent) => void;
   onDragStart: (e: React.MouseEvent) => void;
   onDragEnd: (id: string, x: number, y: number) => void;
+  readOnly?: boolean;
 }
 
 const DeviceComponent: React.FC<DeviceComponentProps> = ({
@@ -32,6 +33,7 @@ const DeviceComponent: React.FC<DeviceComponentProps> = ({
   onClick,
   onDragStart,
   onDragEnd,
+  readOnly = false
 }) => {
   const getDeviceBorderColor = () => {
     switch (device.type) {
@@ -91,13 +93,11 @@ const DeviceComponent: React.FC<DeviceComponentProps> = ({
           return { Icon: MdOutlineNotes, size: 20 };
       }
     };
-
     const { Icon, size } = getIconProps();
     const borderColor = getDeviceBorderColor();
     const containerStroke = selected ? "#2196f3" : borderColor;
     const containerStrokeWidth = selected ? 2 : 1.5;
     const isRectangular = ['switch', 'smart-switch', 'thermostat', 'ethernet', 'tv-outlet', 'temperature-sensor'].includes(device.type);
-
     return (
       <g transform={`rotate(${device.rotation}, 0, 0)`}>
         {isRectangular ? (
@@ -139,8 +139,9 @@ const DeviceComponent: React.FC<DeviceComponentProps> = ({
       y={device.y}
       selected={selected}
       onClick={onClick}
-      onDragStart={onDragStart}
-      onDragEnd={onDragEnd}
+      onDragStart={readOnly ? undefined : onDragStart}
+      onDragEnd={readOnly ? undefined : onDragEnd}
+      readOnly={readOnly}
     >
       <MountPositionIndicator position={device.position} />
       {renderDeviceIcon()}

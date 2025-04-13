@@ -13,6 +13,7 @@ interface FloorplanContextType {
   selectedMountPosition: MountPosition;
   isLoading: boolean;
   detailsPanelOpen: boolean;
+  isEditorMode: boolean;
   
   // Device operations
   addDevice: (x: number, y: number) => void;
@@ -48,15 +49,22 @@ interface FloorplanContextType {
   // Configuration operations
   exportConfiguration: () => void;
   importConfiguration: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  
+  // Mode operations
+  setEditorMode: (isEditor: boolean) => void;
 }
 
 const FloorplanContext = createContext<FloorplanContextType | undefined>(undefined);
 
 interface FloorplanProviderProps {
   children: ReactNode;
+  initialEditorMode?: boolean;
 }
 
-export const FloorplanProvider: React.FC<FloorplanProviderProps> = ({ children }) => {
+export const FloorplanProvider: React.FC<FloorplanProviderProps> = ({ 
+  children, 
+  initialEditorMode = false 
+}) => {
   const [devices, setDevices] = useState<Device[]>([]);
   const [deviceGroups, setDeviceGroups] = useState<DeviceGroup[]>([]);
   const [selectedDeviceType, setSelectedDeviceType] = useState<DeviceType | null>(null);
@@ -67,6 +75,7 @@ export const FloorplanProvider: React.FC<FloorplanProviderProps> = ({ children }
   const [rooms, setRooms] = useState<Room[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [detailsPanelOpen, setDetailsPanelOpen] = useState<boolean>(false);
+  const [isEditorMode, setIsEditorMode] = useState<boolean>(initialEditorMode);
 
   // Device operations
   const addDevice = (x: number, y: number) => {
@@ -521,6 +530,7 @@ export const FloorplanProvider: React.FC<FloorplanProviderProps> = ({ children }
     selectedMountPosition,
     isLoading,
     detailsPanelOpen,
+    isEditorMode,
     
     // Device operations
     addDevice,
@@ -556,6 +566,9 @@ export const FloorplanProvider: React.FC<FloorplanProviderProps> = ({ children }
     // Configuration operations
     exportConfiguration,
     importConfiguration,
+    
+    // Mode operations
+    setEditorMode: (isEditor: boolean) => setIsEditorMode(isEditor),
   };
 
   return (

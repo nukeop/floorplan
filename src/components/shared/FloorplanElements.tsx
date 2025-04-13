@@ -115,9 +115,10 @@ interface DraggableElementProps {
   y: number;
   selected: boolean;
   onClick: (e: React.MouseEvent) => void;
-  onDragStart: (e: React.MouseEvent) => void;
-  onDragEnd: (id: string, x: number, y: number) => void;
+  onDragStart?: (e: React.MouseEvent) => void;
+  onDragEnd?: (id: string, x: number, y: number) => void;
   children: ReactNode;
+  readOnly?: boolean;
 }
 
 export const DraggableElement: React.FC<DraggableElementProps> = ({
@@ -128,7 +129,8 @@ export const DraggableElement: React.FC<DraggableElementProps> = ({
   onClick,
   onDragStart,
   onDragEnd,
-  children
+  children,
+  readOnly = false
 }) => {
   const [dragging, setDragging] = useState(false);
   const [position, setPosition] = useState({ x, y });
@@ -145,6 +147,9 @@ export const DraggableElement: React.FC<DraggableElementProps> = ({
   const handleMouseDown = (e: React.MouseEvent) => {
     e.stopPropagation();
     onClick(e);
+    
+    if (readOnly || !onDragStart) return;
+    
     onDragStart(e);
     
     startPosRef.current = {
@@ -167,7 +172,7 @@ export const DraggableElement: React.FC<DraggableElementProps> = ({
   };
 
   const handleMouseMove = useCallback((e: MouseEvent) => {
-    if (!dragging || !ctmInverseRef.current) return;
+    if (!dragging || !ctmInverseRef.current || readOnly || !onDragEnd) return;
     
     const svgPoint = svgRef.current?.createSVGPoint();
     const startSvgPoint = svgRef.current?.createSVGPoint();
@@ -192,15 +197,15 @@ export const DraggableElement: React.FC<DraggableElementProps> = ({
         setPosition(positionRef.current);
       });
     }
-  }, [dragging]);
+  }, [dragging, readOnly, onDragEnd]);
 
   const handleMouseUp = useCallback(() => {
-    if (dragging) {
+    if (dragging && !readOnly && onDragEnd) {
       setDragging(false);
       onDragEnd(id, positionRef.current.x, positionRef.current.y);
       ctmInverseRef.current = null;
     }
-  }, [dragging, id, onDragEnd]);
+  }, [dragging, id, onDragEnd, readOnly]);
 
   useEffect(() => {
     if (dragging) {
@@ -234,7 +239,7 @@ export const DraggableElement: React.FC<DraggableElementProps> = ({
       height="40"
       viewBox="-20 -20 40 40"
       style={{ 
-        cursor: dragging ? 'grabbing' : 'pointer',
+        cursor: readOnly ? 'default' : dragging ? 'grabbing' : 'pointer',
         opacity: dragging ? 0.8 : 1,
         willChange: dragging ? 'transform' : 'auto' // Rendering optimization
       }}

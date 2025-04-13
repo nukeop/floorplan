@@ -16,7 +16,9 @@ import {
   FaPlug,
   FaLightbulb,
   FaThermometerHalf,
-  FaWifi
+  FaWifi,
+  FaEye,
+  FaEdit
 } from 'react-icons/fa';
 import { 
   MdOutlineGridOn, 
@@ -44,6 +46,7 @@ const FloorplanControlPanel: React.FC<{
   selectedRoom: Room | null;
   selectedDevice: Device | null;
   selectedGroup: DeviceGroup | null;
+  isEditorMode: boolean;
 }> = ({
   rooms,
   devices,
@@ -56,9 +59,10 @@ const FloorplanControlPanel: React.FC<{
   onZoomChange,
   selectedRoom,
   selectedDevice,
-  selectedGroup
+  selectedGroup,
+  isEditorMode
 }) => {
-  const [expanded, setExpanded] = useState(true);
+  const [expanded, setExpanded] = useState(false); // Changed from true to false
   
   const totalArea = useMemo(() => {
     // Convert from grid units to square meters (grid size is in cm)
@@ -159,7 +163,17 @@ const FloorplanControlPanel: React.FC<{
       {/* Header with expand button */}
       <div className="flex justify-center items-center p-2 border-b border-gray-200">
         {expanded ? (
-          <h3 className="font-semibold text-gray-800 flex-grow">Floorplan Controls</h3>
+          <h3 className="font-semibold text-gray-800 flex-grow flex items-center">
+            {isEditorMode ? (
+              <>
+                <FaEdit className="mr-2 text-blue-500" /> Editor Mode
+              </>
+            ) : (
+              <>
+                <FaEye className="mr-2 text-green-500" /> Viewer Mode
+              </>
+            )}
+          </h3>
         ) : null}
         <button 
           onClick={() => setExpanded(!expanded)}
@@ -322,7 +336,8 @@ const FloorPlan: React.FC = () => {
     selectRoom,
     updateRoom,
     isLoading,
-    createDeviceGroup
+    createDeviceGroup,
+    isEditorMode
   } = useFloorplan();
 
   const {
@@ -333,7 +348,6 @@ const FloorPlan: React.FC = () => {
   } = useGrid();
 
   const wallLengths = useWalls(rooms);
-
   const svgRef = useRef<SVGSVGElement>(null);
   const [dragging, setDragging] = useState(false);
   const [draggingDeviceId, setDraggingDeviceId] = useState<string | null>(null);
@@ -344,7 +358,6 @@ const FloorPlan: React.FC = () => {
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
   const [viewBoxValues, setViewBoxValues] = useState({ x: 0, y: 0, width: 950 + margin * 2, height: 950 + margin * 2 });
   const [viewBox, setViewBox] = useState<string>(`${viewBoxValues.x} ${viewBoxValues.y} ${viewBoxValues.width} ${viewBoxValues.height}`);
-
   const [frameDimensions, setFrameDimensions] = useState({
     x: margin,
     y: margin,
@@ -390,13 +403,10 @@ const FloorPlan: React.FC = () => {
   const zoomChange = (scale: number) => {
     const newWidth = 1000 / (scale / 100);
     const newHeight = 1000 / (scale / 100);
-
     const centerX = viewBoxValues.x + viewBoxValues.width / 2;
     const centerY = viewBoxValues.y + viewBoxValues.height / 2;
-
     const newX = centerX - newWidth / 2;
     const newY = centerY - newHeight / 2;
-
     setViewBoxValues({ x: newX, y: newY, width: newWidth, height: newHeight });
     setViewBox(`${newX} ${newY} ${newWidth} ${newHeight}`);
     setUserPanned(true);
@@ -404,7 +414,6 @@ const FloorPlan: React.FC = () => {
 
   const handleZoomChange = (scale: number) => {
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-
     if (rooms.length === 0 && devices.length === 0) {
       minX = 0;
       minY = 0;
@@ -424,24 +433,18 @@ const FloorPlan: React.FC = () => {
         maxY = Math.max(maxY, device.y);
       });
     }
-
     minX = minX - margin;
     minY = minY - margin;
     maxX += margin;
     maxY += margin;
-
     const baseWidth = maxX - minX;
     const baseHeight = maxY - minY;
-
     const newWidth = baseWidth * (100 / scale);
     const newHeight = baseHeight * (100 / scale);
-
     const centerX = viewBoxValues.x + viewBoxValues.width / 2;
     const centerY = viewBoxValues.y + viewBoxValues.height / 2;
-
     const newX = centerX - newWidth / 2;
     const newY = centerY - newHeight / 2;
-
     setViewBoxValues({ x: newX, y: newY, width: newWidth, height: newHeight });
     setViewBox(`${newX} ${newY} ${newWidth} ${newHeight}`);
     setUserPanned(true);
@@ -522,7 +525,7 @@ const FloorPlan: React.FC = () => {
   const [roomStartHeight, setRoomStartHeight] = useState(0);
 
   const handleClick = (e: React.MouseEvent<SVGSVGElement>) => {
-    if (isPanning) {
+    if (isPanning || !isEditorMode) {
       return;
     }
 
@@ -566,6 +569,7 @@ const FloorPlan: React.FC = () => {
     }
 
     const target = e.target as SVGElement;
+
     const isBackgroundClick =
       target === svgRef.current ||
       target.getAttribute('data-background') === 'true';
@@ -675,8 +679,8 @@ const FloorPlan: React.FC = () => {
 
   // Room dragging handlers
   const handleRoomDragStart = (e: React.MouseEvent) => {
-    if (!selectedRoom) return;
-
+    if (!selectedRoom || !isEditorMode) return;
+    
     const svgPoint = svgRef.current?.createSVGPoint();
     if (svgPoint) {
       svgPoint.x = e.clientX;
@@ -684,7 +688,6 @@ const FloorPlan: React.FC = () => {
       const transformedPoint = svgPoint.matrixTransform(
         svgRef.current?.getScreenCTM()?.inverse()
       );
-
       setDragStartX(transformedPoint.x);
       setDragStartY(transformedPoint.y);
       setRoomStartX(selectedRoom.x);
@@ -693,10 +696,10 @@ const FloorPlan: React.FC = () => {
     }
   };
 
-  // Room resizing handlers
+  // Room resizing handlers - modified to respect isEditorMode
   const handleRoomResizeStart = (direction: string, e: React.MouseEvent) => {
-    if (!selectedRoom) return;
-
+    if (!selectedRoom || !isEditorMode) return;
+    
     const svgPoint = svgRef.current?.createSVGPoint();
     if (svgPoint) {
       svgPoint.x = e.clientX;
@@ -704,7 +707,6 @@ const FloorPlan: React.FC = () => {
       const transformedPoint = svgPoint.matrixTransform(
         svgRef.current?.getScreenCTM()?.inverse()
       );
-
       setResizeStartX(transformedPoint.x);
       setResizeStartY(transformedPoint.y);
       setRoomStartX(selectedRoom.x);
@@ -827,8 +829,10 @@ const FloorPlan: React.FC = () => {
     setDraggingDeviceId(null);
   };
 
-  // Handle device drag and drop
+  // Handle device drag and drop - modified to respect isEditorMode
   const handleDragStart = (e: React.MouseEvent, device: Device) => {
+    if (!isEditorMode) return;
+    
     e.stopPropagation();
     selectDevice(device);
     setDragging(true);
@@ -836,6 +840,8 @@ const FloorPlan: React.FC = () => {
   };
 
   const handleDragEnd = (id: string, x: number, y: number) => {
+    if (!isEditorMode) return;
+    
     const safeX = ensurePositiveCoordinate(x);
     const safeY = ensurePositiveCoordinate(y);
     updateDevicePosition(id, safeX, safeY);
@@ -843,14 +849,18 @@ const FloorPlan: React.FC = () => {
     setDraggingDeviceId(null);
   };
 
-  // Handle group drag and drop
+  // Handle group drag and drop - modified to respect isEditorMode
   const handleGroupDragStart = (e: React.MouseEvent, group: DeviceGroup) => {
+    if (!isEditorMode) return;
+    
     e.stopPropagation();
     selectGroup(group);
     setDragging(true);
   };
 
   const handleGroupDragEnd = (id: string, x: number, y: number) => {
+    if (!isEditorMode) return;
+    
     const safeX = ensurePositiveCoordinate(x);
     const safeY = ensurePositiveCoordinate(y);
     updateGroupPosition(id, safeX, safeY);
@@ -899,8 +909,14 @@ const FloorPlan: React.FC = () => {
           <svg
             ref={svgRef}
             viewBox={viewBox}
-            className={`w-full h-full ${selectedDeviceType ? 'cursor-crosshair' : isPanning ? 'cursor-grabbing' : 'cursor-grab'} active:cursor-grabbing select-none`}
-            onClick={handleClick}
+            className={`w-full h-full ${
+              selectedDeviceType 
+                ? 'cursor-crosshair' 
+                : isPanning 
+                  ? 'cursor-grabbing' 
+                  : 'cursor-grab'
+            } active:cursor-grabbing select-none`}
+            onClick={isEditorMode ? handleClick : undefined}
             onMouseDown={handlePanStart}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
@@ -977,7 +993,9 @@ const FloorPlan: React.FC = () => {
                   fontSize="16"
                   fill="#666"
                 >
-                  To get started, create a room using
+                  {isEditorMode 
+                    ? "To get started, create a room using" 
+                    : "To get started, import a floorplan using"}
                 </text>
                 <text
                   x={margin + 475}
@@ -986,7 +1004,9 @@ const FloorPlan: React.FC = () => {
                   fontSize="16"
                   fill="#666"
                 >
-                  the Room Management panel or
+                  {isEditorMode 
+                    ? "the Room Management panel or" 
+                    : "the Import button or"}
                 </text>
                 <text
                   x={margin + 475}
@@ -995,7 +1015,9 @@ const FloorPlan: React.FC = () => {
                   fontSize="16"
                   fill="#666"
                 >
-                  import an existing configuration.
+                  {isEditorMode 
+                    ? "import an existing configuration." 
+                    : "switch to Editor mode to create one."}
                 </text>
               </g>
             )}
@@ -1011,7 +1033,7 @@ const FloorPlan: React.FC = () => {
                   stroke={room.color || '#999'}
                   strokeWidth={selectedRoom?.id === room.id ? "4" : "2"}
                   strokeDasharray={selectedRoom?.id === room.id ? "" : "5,5"}
-                  className="cursor-pointer"
+                  className={isEditorMode ? "cursor-pointer" : ""}
                   onClick={(e) => handleRoomClick(e, room)}
                 />
                 <text
@@ -1026,7 +1048,7 @@ const FloorPlan: React.FC = () => {
                   {room.name}
                 </text>
 
-                {selectedRoom?.id === room.id && (
+                {isEditorMode && selectedRoom?.id === room.id && (
                   <RoomHandles
                     room={room}
                     onDragStart={handleRoomDragStart}
@@ -1071,6 +1093,7 @@ const FloorPlan: React.FC = () => {
                 onClick={(e) => handleGroupClick(e, group)}
                 onDragStart={(e) => handleGroupDragStart(e, group)}
                 onDragEnd={handleGroupDragEnd}
+                readOnly={!isEditorMode}
               />
             ))}
 
@@ -1083,11 +1106,11 @@ const FloorPlan: React.FC = () => {
                 onClick={(e) => handleDeviceClick(e, device)}
                 onDragStart={(e) => handleDragStart(e, device)}
                 onDragEnd={handleDragEnd}
+                readOnly={!isEditorMode}
               />
             ))}
           </svg>
 
-          {/* Replace the simple center button with the FloorplanControlPanel */}
           <FloorplanControlPanel
             rooms={rooms}
             devices={devices}
@@ -1101,6 +1124,7 @@ const FloorPlan: React.FC = () => {
             selectedRoom={selectedRoom}
             selectedDevice={selectedDevice}
             selectedGroup={selectedGroup}
+            isEditorMode={isEditorMode}
           />
         </div>
       )}

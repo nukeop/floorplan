@@ -14,6 +14,7 @@ interface GroupedDeviceComponentProps {
   onClick: (e: React.MouseEvent) => void;
   onDragStart: (e: React.MouseEvent) => void;
   onDragEnd: (id: string, x: number, y: number) => void;
+  readOnly?: boolean;
 }
 
 const GroupedDeviceComponent: React.FC<GroupedDeviceComponentProps> = ({
@@ -22,6 +23,7 @@ const GroupedDeviceComponent: React.FC<GroupedDeviceComponentProps> = ({
   onClick,
   onDragStart,
   onDragEnd,
+  readOnly = false
 }) => {
   // Get border color based on selection status
   const getBorderColor = () => {
@@ -35,8 +37,9 @@ const GroupedDeviceComponent: React.FC<GroupedDeviceComponentProps> = ({
       y={group.y}
       selected={selected}
       onClick={onClick}
-      onDragStart={onDragStart}
-      onDragEnd={onDragEnd}
+      onDragStart={readOnly ? undefined : onDragStart}
+      onDragEnd={readOnly ? undefined : onDragEnd}
+      readOnly={readOnly}
     >
       {/* Main container */}
       <rect 
