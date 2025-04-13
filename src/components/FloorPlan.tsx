@@ -345,7 +345,8 @@ const FloorPlan: React.FC = () => {
     updateRoom,
     isLoading,
     createDeviceGroup,
-    isEditorMode
+    isEditorMode,
+    importConfiguration
   } = useFloorplan();
 
   const {
@@ -903,6 +904,12 @@ const FloorPlan: React.FC = () => {
 
   const isEmpty = rooms.length === 0 && devices.length === 0;
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  const handleFileImportClick = () => {
+    fileInputRef.current?.click();
+  };
+
   return (
     <div className="flex-1 bg-gray-100 overflow-auto">
       {isLoading ? (
@@ -994,39 +1001,62 @@ const FloorPlan: React.FC = () => {
                 >
                   Welcome to Smart Home Planner
                 </text>
-                <text
-                  x={margin + 475}
-                  y={margin + 480}
-                  textAnchor="middle"
-                  fontSize="16"
-                  fill="#666"
-                >
-                  {isEditorMode 
-                    ? "To get started, create a room using" 
-                    : "To get started, import a floorplan using"}
-                </text>
-                <text
-                  x={margin + 475}
-                  y={margin + 510}
-                  textAnchor="middle"
-                  fontSize="16"
-                  fill="#666"
-                >
-                  {isEditorMode 
-                    ? "the Room Management panel or" 
-                    : "the Import button or"}
-                </text>
-                <text
-                  x={margin + 475}
-                  y={margin + 540}
-                  textAnchor="middle"
-                  fontSize="16"
-                  fill="#666"
-                >
-                  {isEditorMode 
-                    ? "import an existing configuration." 
-                    : "switch to Editor mode to create one."}
-                </text>
+                
+                {isEditorMode ? (
+                  <>
+                    <text
+                      x={margin + 475}
+                      y={margin + 480}
+                      textAnchor="middle"
+                      fontSize="16"
+                      fill="#666"
+                    >
+                      To get started, create a room using
+                    </text>
+                    <text
+                      x={margin + 475}
+                      y={margin + 510}
+                      textAnchor="middle"
+                      fontSize="16"
+                      fill="#666"
+                    >
+                      the Room Management panel or
+                    </text>
+                    <text
+                      x={margin + 475}
+                      y={margin + 540}
+                      textAnchor="middle"
+                      fontSize="16"
+                      fill="#666"
+                    >
+                      import an existing configuration.
+                    </text>
+                  </>
+                ) : (
+                  // For viewer mode, just show the button with proper spacing
+                  <g onClick={handleFileImportClick} className="cursor-pointer">
+                    <rect
+                      x={margin + 375}
+                      y={margin + 480}
+                      width="200"
+                      height="40"
+                      rx="20"
+                      ry="20"
+                      fill="#3b82f6"
+                      stroke="none"
+                    />
+                    <text
+                      x={margin + 475}
+                      y={margin + 505}
+                      textAnchor="middle"
+                      fontSize="16"
+                      fontWeight="bold"
+                      fill="white"
+                    >
+                      Import Floorplan
+                    </text>
+                  </g>
+                )}
               </g>
             )}
 
@@ -1118,6 +1148,14 @@ const FloorPlan: React.FC = () => {
               />
             ))}
           </svg>
+
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={importConfiguration}
+            style={{ display: 'none' }}
+            accept=".json"
+          />
 
           <FloorplanControlPanel
             rooms={rooms}
