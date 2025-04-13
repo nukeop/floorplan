@@ -42,19 +42,3 @@ export function FloorplanContent() {
     </div>
   );
 }
-
-// Mode toggle component to switch between editor and viewer modes
-export function ModeToggle() {
-  const { isEditorMode } = useFloorplan();
-
-  return (
-    <div className="absolute top-4 right-4 z-10">
-      <a
-        href={isEditorMode ? '/' : '/editor'}
-        className="py-2 px-4 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
-      >
-        {isEditorMode ? 'Switch to Viewer Mode' : 'Switch to Editor Mode'}
-      </a>
-    </div>
-  );
-}

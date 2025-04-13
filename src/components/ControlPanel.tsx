@@ -21,7 +21,7 @@ const ControlPanel: React.FC = () => {
   } = useFloorplan();
 
   // State to track if sidebar is collapsed
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(!isEditorMode);
 
   const toggleSidebar = () => {
     setIsCollapsed(!isCollapsed);

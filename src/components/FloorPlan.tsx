@@ -187,7 +187,7 @@ const FloorplanControlPanel: React.FC<{
       <div className={`${expanded ? 'p-3' : 'p-0'}`}>
         {/* View Controls with slider */}
         <div className={`${expanded ? 'mb-4' : ''}`}>
-          <div className={`flex justify-center ${expanded ? 'mb-2' : 'py-2'}`}>
+          <div className={`flex justify-start items-center ${expanded ? 'mb-2 flex-row justify-end' : 'py-2 flex-col'} gap-2 p-2`}>
             <button
               onClick={onCenterView}
               className="p-2 bg-blue-500 text-white rounded shadow hover:bg-blue-600 focus:outline-none flex items-center justify-center"
@@ -195,6 +195,14 @@ const FloorplanControlPanel: React.FC<{
             >
               <FaCrosshairs className="w-5 h-5" />
             </button>
+            
+            <a
+              href={isEditorMode ? '/' : '/editor'}
+              className="p-2 bg-blue-500 text-white rounded shadow hover:bg-blue-600 focus:outline-none flex items-center justify-center"
+              title={isEditorMode ? "Switch to Viewer Mode" : "Switch to Editor Mode"}
+            >
+              {isEditorMode ? <FaEye className="w-5 h-5" /> : <FaEdit className="w-5 h-5" />}
+            </a>
           </div>
           
           {expanded && (
