@@ -49,7 +49,7 @@ floorplan/
 │   │   ├── layout.tsx      # Root layout component
 │   │   └── page.tsx        # Home page component with main application logic
 │   ├── components/         # Reusable React components
-│   │   ├── ControlPanel.tsx  # UI for device selection and configuration
+│   │   ├── ControlPanel.tsx  # Left sidebar - UI for device selection and configuration
 │   │   ├── DeviceComponent.tsx # Individual device renderer
 │   │   ├── DeviceDetailsPanel.tsx # Panel to show details of selected device
 │   │   ├── FloorPlan.tsx   # Main floorplan visualization component
