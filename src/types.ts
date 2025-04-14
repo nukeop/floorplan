@@ -11,6 +11,7 @@ export enum DeviceType {
     THERMOSTAT = 'thermostat',
     CEILING_LIGHT = 'ceiling-light',
     CEILING_SENSOR = 'ceiling-sensor',
+    AIR_SENSOR = 'air-sensor',
 }
 
 export enum MountPosition {

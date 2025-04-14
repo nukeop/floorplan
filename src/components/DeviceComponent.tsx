@@ -8,7 +8,7 @@ import {
   BsEthernet,
   BsTv
 } from 'react-icons/bs';
-import { IoThermometerOutline } from 'react-icons/io5';
+import { IoThermometerOutline, IoWater } from 'react-icons/io5';
 import { GiSmartphone } from 'react-icons/gi';
 import { RiSensorLine } from 'react-icons/ri';
 import { MdOutlineNotes } from 'react-icons/md';
@@ -59,6 +59,8 @@ const DeviceComponent: React.FC<DeviceComponentProps> = ({
         return "#7c3aed"; // Violet
       case 'thermostat':
         return "#ec4899"; // Pink
+      case 'air-sensor':
+        return "#0891b2"; // Cyan
       default:
         return "#6b7280"; // Gray
     }
@@ -89,6 +91,8 @@ const DeviceComponent: React.FC<DeviceComponentProps> = ({
           return { Icon: BsTv, size: 20 };
         case 'thermostat':
           return { Icon: BsThermometerHalf, size: 20 };
+        case 'air-sensor':
+          return { Icon: IoWater, size: 20 };
         default:
           return { Icon: MdOutlineNotes, size: 20 };
       }
@@ -97,7 +101,7 @@ const DeviceComponent: React.FC<DeviceComponentProps> = ({
     const borderColor = getDeviceBorderColor();
     const containerStroke = selected ? "#2196f3" : borderColor;
     const containerStrokeWidth = selected ? 2 : 1.5;
-    const isRectangular = ['switch', 'smart-switch', 'thermostat', 'ethernet', 'tv-outlet', 'temperature-sensor'].includes(device.type);
+    const isRectangular = ['switch', 'smart-switch', 'thermostat', 'ethernet', 'tv-outlet', 'temperature-sensor', 'air-sensor'].includes(device.type);
     return (
       <g transform={`rotate(${device.rotation}, 0, 0)`}>
         {isRectangular ? (

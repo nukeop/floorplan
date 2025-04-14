@@ -40,6 +40,7 @@ const ControlPanel: React.FC = () => {
     { type: DeviceType.ETHERNET, label: 'Ethernet' },
     { type: DeviceType.TV_OUTLET, label: 'TV Outlet' },
     { type: DeviceType.THERMOSTAT, label: 'Thermostat' },
+    { type: DeviceType.AIR_SENSOR, label: 'Air Sensor' },
   ];
 
   const mountPositions = [
