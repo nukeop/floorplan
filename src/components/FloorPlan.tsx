@@ -327,7 +327,8 @@ const FloorplanControlPanel: React.FC<{
   );
 };
 
-const FloorPlan: React.FC = () => {
+const FloorPlan: React.FC<{
+}> = () => {
   const {
     rooms,
     devices,
@@ -809,31 +810,30 @@ const FloorPlan: React.FC = () => {
       handlePanEnd();
       return;
     }
-
     setIsDraggingRoom(false);
     setIsResizing(false);
     setResizeDirection(null);
-
+    
     // Check if a dragged device should be grouped with another
     if (dragging && draggingDeviceId) {
       const deviceToCheck = devices.find(d => d.id === draggingDeviceId);
-
+      
       if (deviceToCheck && !deviceToCheck.groupId) {
         // Find if there's another device at this position
         const targetDevice = devices.find(
-          d => d.id !== draggingDeviceId &&
-            !d.groupId &&
+            d => d.id !== draggingDeviceId &&
+              !d.groupId &&
             Math.abs(d.x - deviceToCheck.x) <= 20 &&
             Math.abs(d.y - deviceToCheck.y) <= 20
-        );
-
+          );
+          
         if (targetDevice) {
           // Create a new group with these two devices
           createDeviceGroup([deviceToCheck.id, targetDevice.id]);
-        }
+          }
       }
     }
-
+    
     setDragging(false);
     setDraggingDeviceId(null);
   };

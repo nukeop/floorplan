@@ -34,6 +34,7 @@ interface FloorplanContextType {
   addDeviceToGroup: (deviceId: string, groupId: string) => void;
   removeDeviceFromGroup: (deviceId: string, groupId: string) => void;
   deleteGroup: (id: string) => void;
+  ungroupAllDevices: (groupId: string) => string[];
   selectGroup: (group: DeviceGroup | null) => void;
   
   // Room operations
@@ -119,19 +120,35 @@ export const FloorplanProvider: React.FC<FloorplanProviderProps> = ({
       setSelectedDevice(prev => (prev && prev.id === id ? updatedDevice || null : prev));
       return newDevices;
     });
-  }, []);
+  }, [devices, selectedDevice]);
 
   const deleteDevice = (id: string) => {
-    setDevices(devices.filter(device => device.id !== id));
-    if (selectedDevice?.id === id) {
-      setSelectedDevice(null);
-      closeDetailsPanel();
-    }
+    // Remove device from devices state
+    setDevices(prevDevices => prevDevices.filter(device => device.id !== id));
+    
+    // Remove device from any groups and update selectedGroup with the new group reference
+    setDeviceGroups(prevGroups => {
+      const updatedGroups = prevGroups
+        .map(group => ({
+          ...group,
+          devices: group.devices.filter(device => device.id !== id)
+        }))
+        .filter(group => group.devices.length > 0);
+      
+      // Update selectedGroup to the new object from updatedGroups if it exists
+      setSelectedGroup(prevSelected => updatedGroups.find(g => g.id === prevSelected?.id) || null);
+      
+      return updatedGroups;
+    });
+    
+    // Clear selected device if it's the one being deleted
+    setSelectedDevice(prevDevice => (prevDevice && prevDevice.id === id ? null : prevDevice));
   };
 
   const rotateDevice = (id: string) => {
     setDevices(
-      devices.map(device => 
+      oldDevices =>
+      oldDevices.map(device => 
         device.id === id 
           ? { ...device, rotation: (device.rotation + 90) % 360 } 
           : device
@@ -169,6 +186,7 @@ export const FloorplanProvider: React.FC<FloorplanProviderProps> = ({
     const firstDevice = devicesToGroup[0];
     const groupPosition = { x: firstDevice.x, y: firstDevice.y };
 
+    // Use position of first device for group's mount position
     const commonPosition = firstDevice.position;
 
     // Create new group
@@ -310,23 +328,47 @@ export const FloorplanProvider: React.FC<FloorplanProviderProps> = ({
   };
 
   const deleteGroup = (id: string) => {
-    // Update all devices in the group to no longer be part of it
-    const updatedDevices = devices.map((device) => {
-      if (device.groupId === id) {
-        const { groupId, ...deviceWithoutGroup } = device;
-        return deviceWithoutGroup;
-      }
-      return device;
-    });
-
+    // First find all devices in the group
+    const devicesToDelete = devices.filter(device => device.groupId === id);
+    
+    // Delete all devices from the group
+    setDevices(devices.filter(device => device.groupId !== id));
+    
     // Remove the group
     setDeviceGroups(deviceGroups.filter(group => group.id !== id));
-    setDevices(updatedDevices);
 
     if (selectedGroup?.id === id) {
       setSelectedGroup(null);
       closeDetailsPanel();
     }
+  };
+
+  const ungroupAllDevices = (groupId: string) => {
+    // Get device IDs that are being ungrouped
+    const ungroupedDeviceIds = devices
+      .filter(device => device.groupId === groupId)
+      .map(device => device.id);
+    
+    // Update all devices in the group to no longer be part of it
+    const updatedDevices = devices.map((device) => {
+      if (device.groupId === groupId) {
+        const { groupId, ...deviceWithoutGroup } = device;
+        return deviceWithoutGroup;
+      }
+      return device;
+    });
+    
+    // Remove the group
+    setDeviceGroups(deviceGroups.filter(group => group.id !== groupId));
+    setDevices(updatedDevices);
+    
+    if (selectedGroup?.id === groupId) {
+      setSelectedGroup(null);
+      closeDetailsPanel();
+    }
+    
+    // Return list of ungrouped device IDs so we can track them in UI components
+    return ungroupedDeviceIds;
   };
 
   const selectGroup = (group: DeviceGroup | null) => {
@@ -552,6 +594,7 @@ export const FloorplanProvider: React.FC<FloorplanProviderProps> = ({
     removeDeviceFromGroup,
     deleteGroup,
     selectGroup,
+    ungroupAllDevices,
     
     // Room operations
     addRoom,

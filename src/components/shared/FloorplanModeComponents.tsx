@@ -7,16 +7,7 @@ import { useFloorplan } from '@/contexts/FloorplanContext';
 
 export function FloorplanContent() {
   const {
-    selectedDevice,
-    selectedGroup,
     detailsPanelOpen,
-    closeDetailsPanel,
-    updateDeviceNotes,
-    updateGroupNotes,
-    removeDeviceFromGroup,
-    updateDeviceMountPosition,
-    updateGroupMountPosition,
-    rotateDevice,
     isEditorMode
   } = useFloorplan();
 
@@ -24,18 +15,8 @@ export function FloorplanContent() {
     <div className="flex flex-1 overflow-hidden relative">
       <ControlPanel />
       <FloorPlan />
-      
       {detailsPanelOpen && (
         <DeviceDetailsPanel
-          device={selectedDevice}
-          group={selectedGroup}
-          onUpdateDeviceNotes={updateDeviceNotes}
-          onUpdateGroupNotes={updateGroupNotes}
-          onClose={closeDetailsPanel}
-          onRemoveDeviceFromGroup={removeDeviceFromGroup}
-          onChangeMountPosition={updateDeviceMountPosition}
-          onChangeGroupMountPosition={updateGroupMountPosition}
-          onRotateDevice={rotateDevice}
           readOnly={!isEditorMode}
         />
       )}
