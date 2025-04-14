@@ -327,8 +327,7 @@ const FloorplanControlPanel: React.FC<{
   );
 };
 
-const FloorPlan: React.FC<{
-}> = () => {
+const FloorPlan: React.FC = () => {
   const {
     rooms,
     devices,
@@ -346,6 +345,7 @@ const FloorPlan: React.FC<{
     updateRoom,
     isLoading,
     createDeviceGroup,
+    addDeviceToGroup,
     isEditorMode,
     importConfiguration
   } = useFloorplan();
@@ -814,23 +814,26 @@ const FloorPlan: React.FC<{
     setIsResizing(false);
     setResizeDirection(null);
     
-    // Check if a dragged device should be grouped with another
+    // Updated grouping logic: Check if a dragged device should be grouped with nearby device(s)
     if (dragging && draggingDeviceId) {
       const deviceToCheck = devices.find(d => d.id === draggingDeviceId);
-      
       if (deviceToCheck && !deviceToCheck.groupId) {
-        // Find if there's another device at this position
-        const targetDevice = devices.find(
-            d => d.id !== draggingDeviceId &&
-              !d.groupId &&
-            Math.abs(d.x - deviceToCheck.x) <= 20 &&
-            Math.abs(d.y - deviceToCheck.y) <= 20
-          );
-          
-        if (targetDevice) {
-          // Create a new group with these two devices
-          createDeviceGroup([deviceToCheck.id, targetDevice.id]);
+        // Find candidate devices in proximity
+        const candidateDevices = devices.filter(d =>
+          d.id !== draggingDeviceId &&
+          Math.abs(d.x - deviceToCheck.x) <= 20 &&
+          Math.abs(d.y - deviceToCheck.y) <= 20
+        );
+        if (candidateDevices.length > 0) {
+          // If any candidate is already grouped, add the dragged device to that group
+          const groupedCandidate = candidateDevices.find(d => d.groupId);
+          if (groupedCandidate) {
+            addDeviceToGroup(deviceToCheck.id, groupedCandidate.groupId!);
+          } else {
+            // Otherwise, create a new group with the dragged device and the first candidate
+            createDeviceGroup([deviceToCheck.id, candidateDevices[0].id]);
           }
+        }
       }
     }
     
